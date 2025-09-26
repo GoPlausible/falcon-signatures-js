@@ -1,0 +1,3 @@
+[submodule "falcon"]
+	path = falcon
+	url = https://github.com/algorand/falcon.git

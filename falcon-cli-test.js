@@ -40,17 +40,16 @@ try {
   fs.writeFileSync(SK_FILE, hexToBytes(sk));
   console.log(`Keys saved to ${PK_FILE} and ${SK_FILE}`);
   
-  // Step 2: Sign a message (using a shorter message and generating a new key)
+  // Step 2: Sign a message (using the keys generated in Step 1)
   console.log("\n=== Step 2: Signing a message ===");
   const msg = "test";
   
-  // Generate a new keypair specifically for signing
-  console.log("Generating a new keypair for signing...");
-  const signKeygenOutput = run("node ./falcon-cli.js keygen");
-  const signPk = signKeygenOutput.match(/PublicKey:\s*([0-9a-f]+)/i)[1];
-  const signSk = signKeygenOutput.match(/SecretKey:\s*([0-9a-f]+)/i)[1];
+  // Read the secret key from the file saved in Step 1
+  console.log("Using the keypair generated in Step 1...");
+  const skFromFileForSigning = fs.readFileSync(SK_FILE);
+  const skHexForSigning = bytesToHex(skFromFileForSigning);
   
-  const signOutput = run(`node ./falcon-cli.js sign "${msg}" ${signSk}`);
+  const signOutput = run(`node ./falcon-cli.js sign "${msg}" ${skHexForSigning}`);
   console.log("Signing completed successfully");
   
   // Extract signature from output
@@ -63,7 +62,9 @@ try {
   
   // Step 3: Verify the signature
   console.log("\n=== Step 3: Verifying the signature ===");
-  const verifyOutput = run(`node ./falcon-cli.js verify "${msg}" ${sig} ${signPk}`);
+  const pkFromFileForVerifying = fs.readFileSync(PK_FILE);
+  const pkHexForVerifying = bytesToHex(pkFromFileForVerifying);
+  const verifyOutput = run(`node ./falcon-cli.js verify "${msg}" ${sig} ${pkHexForVerifying}`);
   console.log("Verification result:", verifyOutput);
   
   if (!verifyOutput.includes("✅ Verification success")) {

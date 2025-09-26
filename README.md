@@ -2,7 +2,8 @@
 
 ## A WASM/JS port of the Falcon post-quantum signature algorithm using Emscripten & WebAssembly. 
 
-<img width="1024" height="1536" alt="ChatGPT Image Sep 26, 2025, 08_53_23 PM" src="https://github.com/user-attachments/assets/db03f737-1b91-402f-81af-cbbd8db400f6" />
+<img width="500" height="1024" alt="ChatGPT Image Sep 26, 2025, 08_53_23 PM" src="https://github.com/user-attachments/assets/b6b50e1d-9df2-4f04-b3a4-6d578d9fdd77" />
+
 
 The Algorand Falcon repository does only provide the C and GO implementations; therefore, a majority of developers were not able to use Falcon keys and signatures in their JavaScript or TypeScript applications. 
 

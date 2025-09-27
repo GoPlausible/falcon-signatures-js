@@ -1,8 +1,11 @@
-# Falcon Signatures in JavaScript (WebAssembly)
+# Falcon Keys and Signatures in JavaScript (WASM)
 
-## A JS port of the Falcon post-quantum signature algorithm using WebAssembly. 
+## A WASM/JS port of the Falcon post-quantum signature algorithm using Emscripten & WebAssembly. 
 
-The Algorand Falcon repository does only provide the C and GO implementations, therefore a majority of developers were not able to use Falcon keys and signatures in their JavaScript or TypeScript applications. 
+<img width="500" height="1024" alt="ChatGPT Image Sep 26, 2025, 08_53_23 PM" src="https://github.com/user-attachments/assets/b6b50e1d-9df2-4f04-b3a4-6d578d9fdd77" />
+
+
+The Algorand Falcon repository does only provide the C and GO implementations; therefore, a majority of developers were not able to use Falcon keys and signatures in their JavaScript or TypeScript applications. 
 
 This project from [GoPlausible](https://goplausible.com) aims to fill that gap. We initially use that to make all of our agentic toolins and platforms post-quantum secure.
 

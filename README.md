@@ -413,7 +413,6 @@ The project is structured as follows:
 - `falcon.js`: JavaScript wrapper for the WebAssembly module (generated)
 - `falcon.wasm`: WebAssembly binary (generated)
 - `README.md`: This file
-- `memory-bank/`: Documentation of the project's context and progress
 
 ## License
 

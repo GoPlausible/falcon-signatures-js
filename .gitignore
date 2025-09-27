@@ -1,0 +1,7 @@
+go-cli
+go-cli/*
+falcon_pk.bin
+memo*
+memo*/*
+falcon_sk.bin
+falcon_sig.bin

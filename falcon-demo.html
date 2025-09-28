@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Falcon Signatures - Post-Quantum Cryptography Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0.5rem;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #f9fafb;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .floating-gradient {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            animation-fill-mode: both;
+            mix-blend-mode: screen;
+            transition: background 3s ease-in-out;
+        }
+
+        .action-button {
+            background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%);
+            color: #fff;
+            border: none;
+            border-radius: 32px;
+            padding: 0.85em 2.5em;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 24px 0 rgba(59, 130, 246, 0.18);
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+            margin: 1.5rem auto 1rem auto;
+            display: block;
+            outline: none;
+            position: relative;
+            z-index: 2;
+            letter-spacing: 0.02em;
+            text-shadow: 0 1px 8px #0ea5e9cc;
+        }
+
+        .action-button:hover,
+        .action-button:focus {
+            background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%);
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 8px 32px 0 rgba(59, 130, 246, 0.28);
+            text-shadow: 0 2px 16px #0ea5e9cc;
+        }
+
+        .action-button:disabled {
+            background: linear-gradient(90deg, #94a3b8 0%, #64748b 100%);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .secondary-button {
+            background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%);
+            font-size: 0.9rem;
+            padding: 0.6em 1.5em;
+            margin: 0.5rem 0.25rem;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(15px);
+            opacity: 0.4;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            animation-fill-mode: both;
+            mix-blend-mode: screen;
+        }
+
+        .gradient-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, rgba(14, 165, 233, 0.2) 50%, transparent 100%);
+            top: 20%;
+            left: 10%;
+            animation: float1 18s infinite, colorChange1 24s infinite;
+            animation-delay: 0s, 2s;
+            transform-origin: center;
+        }
+
+        .gradient-2 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.5) 0%, rgba(2, 132, 199, 0.3) 50%, transparent 100%);
+            top: 60%;
+            right: 15%;
+            animation: float2 20s infinite, colorChange2 30s infinite;
+            animation-delay: -2s, 0s;
+            transform-origin: 30% 70%;
+        }
+
+        .gradient-3 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, rgba(3, 105, 161, 0.2) 50%, transparent 100%);
+            bottom: 30%;
+            left: 20%;
+            animation: float3 22s infinite, colorChange3 28s infinite;
+            animation-delay: -4s, -3s;
+            transform-origin: 70% 30%;
+        }
+
+        .gradient-4 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(125, 211, 252, 0.3) 0%, rgba(186, 230, 253, 0.2) 50%, transparent 100%);
+            top: 10%;
+            right: 25%;
+            animation: float4 25s infinite, colorChange4 32s infinite;
+            animation-delay: -1s, -5s;
+            transform-origin: 40% 60%;
+        }
+
+        .gradient-5 {
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.2) 50%, transparent 100%);
+            bottom: 15%;
+            right: 30%;
+            animation: float5 23s infinite, colorChange5 26s infinite;
+            animation-delay: -3s, -2s;
+            transform-origin: 60% 40%;
+        }
+
+        .gradient-6 {
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle, rgba(96, 165, 250, 0.4) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 100%);
+            top: 40%;
+            left: 5%;
+            animation: float6 21s infinite, colorChange6 29s infinite;
+            animation-delay: -5s, -1s;
+            transform-origin: 20% 80%;
+        }
+
+        /* Additional particles */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(15px);
+            opacity: 0.4;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            animation-fill-mode: both;
+            mix-blend-mode: screen;
+        }
+
+        .particle-1 {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(147, 197, 253, 0.4) 0%, rgba(96, 165, 250, 0.2) 50%, transparent 100%);
+            top: 25%;
+            left: 35%;
+            animation: particleFloat1 15s infinite, particleOpacity 8s infinite;
+        }
+
+        .particle-2 {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, rgba(37, 99, 235, 0.2) 50%, transparent 100%);
+            top: 70%;
+            left: 65%;
+            animation: particleFloat2 12s infinite, particleOpacity 10s infinite;
+            animation-delay: -3s, -2s;
+        }
+
+        .particle-3 {
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, rgba(3, 105, 161, 0.2) 50%, transparent 100%);
+            top: 40%;
+            right: 20%;
+            animation: particleFloat3 18s infinite, particleOpacity 9s infinite;
+            animation-delay: -5s, -4s;
+        }
+
+        .particle-4 {
+            width: 90px;
+            height: 90px;
+            background: radial-gradient(circle, rgba(186, 230, 253, 0.4) 0%, rgba(125, 211, 252, 0.2) 50%, transparent 100%);
+            bottom: 20%;
+            left: 40%;
+            animation: particleFloat4 14s infinite, particleOpacity 11s infinite;
+            animation-delay: -2s, -6s;
+        }
+
+        /* Enhanced floating animations with more complex movement */
+        @keyframes float1 {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                filter: blur(80px);
+            }
+
+            20% {
+                transform: translate(50px, -30px) scale(1.05) rotate(5deg);
+                filter: blur(90px);
+            }
+
+            40% {
+                transform: translate(90px, -15px) scale(1.1) rotate(10deg);
+                filter: blur(100px);
+            }
+
+            60% {
+                transform: translate(80px, 40px) scale(1.08) rotate(5deg);
+                filter: blur(95px);
+            }
+
+            80% {
+                transform: translate(30px, 60px) scale(1.03) rotate(-5deg);
+                filter: blur(85px);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                filter: blur(80px);
+            }
+        }
+
+        @keyframes float2 {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg) skew(0deg, 0deg);
+                filter: blur(80px);
+            }
+
+            25% {
+                transform: translate(-60px, 40px) scale(1.06) rotate(-8deg) skew(2deg, 1deg);
+                filter: blur(95px);
+            }
+
+            50% {
+                transform: translate(-100px, 100px) scale(1.12) rotate(-15deg) skew(4deg, 2deg);
+                filter: blur(110px);
+            }
+
+            75% {
+                transform: translate(-50px, 70px) scale(1.08) rotate(-5deg) skew(2deg, 1deg);
+                filter: blur(90px);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1) rotate(0deg) skew(0deg, 0deg);
+                filter: blur(80px);
+            }
+        }
+
+        @keyframes float3 {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                filter: blur(80px);
+                border-radius: 50%;
+            }
+
+            20% {
+                transform: translate(40px, 30px) scale(1.04) rotate(8deg);
+                filter: blur(85px);
+                border-radius: 55%;
+            }
+
+            40% {
+                transform: translate(90px, 80px) scale(1.09) rotate(15deg);
+                filter: blur(95px);
+                border-radius: 60%;
+            }
+
+            60% {
+                transform: translate(100px, 110px) scale(1.12) rotate(20deg);
+                filter: blur(105px);
+                border-radius: 55%;
+            }
+
+            80% {
+                transform: translate(50px, 90px) scale(1.06) rotate(10deg);
+                filter: blur(90px);
+                border-radius: 52%;
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                filter: blur(80px);
+                border-radius: 50%;
+            }
+        }
+
+        @keyframes float4 {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg) skew(0deg, 0deg);
+                filter: blur(80px);
+            }
+
+            15% {
+                transform: translate(-30px, -40px) scale(1.03) rotate(-5deg) skew(-1deg, -1deg);
+                filter: blur(90px);
+            }
+
+            35% {
+                transform: translate(-70px, -90px) scale(1.08) rotate(-12deg) skew(-3deg, -2deg);
+                filter: blur(100px);
+            }
+
+            55% {
+                transform: translate(-100px, -110px) scale(1.12) rotate(-18deg) skew(-4deg, -3deg);
+                filter: blur(110px);
+            }
+
+            75% {
+                transform: translate(-80px, -70px) scale(1.09) rotate(-10deg) skew(-2deg, -2deg);
+                filter: blur(95px);
+            }
+
+            90% {
+                transform: translate(-40px, -30px) scale(1.04) rotate(-3deg) skew(-1deg, -1deg);
+                filter: blur(85px);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1) rotate(0deg) skew(0deg, 0deg);
+                filter: blur(80px);
+            }
+        }
+
+        @keyframes float5 {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                filter: blur(80px);
+                border-radius: 50%;
+            }
+
+            20% {
+                transform: translate(40px, -30px) scale(1.05) rotate(10deg);
+                filter: blur(90px);
+                border-radius: 48%;
+            }
+
+            40% {
+                transform: translate(100px, -60px) scale(1.1) rotate(20deg);
+                filter: blur(100px);
+                border-radius: 45%;
+            }
+
+            60% {
+                transform: translate(120px, -50px) scale(1.12) rotate(25deg);
+                filter: blur(105px);
+                border-radius: 42%;
+            }
+
+            80% {
+                transform: translate(70px, -20px) scale(1.07) rotate(15deg);
+                filter: blur(95px);
+                border-radius: 46%;
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                filter: blur(80px);
+                border-radius: 50%;
+            }
+        }
+
+        @keyframes float6 {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg) skew(0deg, 0deg);
+                filter: blur(80px);
+            }
+
+            16% {
+                transform: translate(-40px, 30px) scale(1.04) rotate(-8deg) skew(2deg, 0deg);
+                filter: blur(85px);
+            }
+
+            32% {
+                transform: translate(-80px, 60px) scale(1.08) rotate(-15deg) skew(4deg, 1deg);
+                filter: blur(95px);
+            }
+
+            48% {
+                transform: translate(-120px, 90px) scale(1.12) rotate(-22deg) skew(6deg, 2deg);
+                filter: blur(105px);
+            }
+
+            64% {
+                transform: translate(-100px, 80px) scale(1.1) rotate(-18deg) skew(5deg, 1.5deg);
+                filter: blur(100px);
+            }
+
+            80% {
+                transform: translate(-60px, 50px) scale(1.06) rotate(-10deg) skew(3deg, 1deg);
+                filter: blur(90px);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1) rotate(0deg) skew(0deg, 0deg);
+                filter: blur(80px);
+            }
+        }
+
+        /* Color change animations - blue palette only */
+        @keyframes colorChange1 {
+            0% {
+                background: radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, rgba(14, 165, 233, 0.2) 50%, transparent 100%);
+            }
+
+            33% {
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, rgba(37, 99, 235, 0.2) 50%, transparent 100%);
+            }
+
+            66% {
+                background: radial-gradient(circle, rgba(2, 132, 199, 0.4) 0%, rgba(3, 105, 161, 0.2) 50%, transparent 100%);
+            }
+
+            100% {
+                background: radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, rgba(14, 165, 233, 0.2) 50%, transparent 100%);
+            }
+        }
+
+        @keyframes colorChange2 {
+            0% {
+                background: radial-gradient(circle, rgba(56, 189, 248, 0.5) 0%, rgba(2, 132, 199, 0.3) 50%, transparent 100%);
+            }
+
+            33% {
+                background: radial-gradient(circle, rgba(96, 165, 250, 0.5) 0%, rgba(59, 130, 246, 0.3) 50%, transparent 100%);
+            }
+
+            66% {
+                background: radial-gradient(circle, rgba(14, 165, 233, 0.5) 0%, rgba(3, 105, 161, 0.3) 50%, transparent 100%);
+            }
+
+            100% {
+                background: radial-gradient(circle, rgba(56, 189, 248, 0.5) 0%, rgba(2, 132, 199, 0.3) 50%, transparent 100%);
+            }
+        }
+
+        @keyframes colorChange3 {
+            0% {
+                background: radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, rgba(3, 105, 161, 0.2) 50%, transparent 100%);
+            }
+
+            33% {
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.2) 50%, transparent 100%);
+            }
+
+            66% {
+                background: radial-gradient(circle, rgba(2, 132, 199, 0.3) 0%, rgba(7, 89, 133, 0.2) 50%, transparent 100%);
+            }
+
+            100% {
+                background: radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, rgba(3, 105, 161, 0.2) 50%, transparent 100%);
+            }
+        }
+
+        @keyframes colorChange4 {
+            0% {
+                background: radial-gradient(circle, rgba(125, 211, 252, 0.3) 0%, rgba(186, 230, 253, 0.2) 50%, transparent 100%);
+            }
+
+            33% {
+                background: radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, rgba(14, 165, 233, 0.2) 50%, transparent 100%);
+            }
+
+            66% {
+                background: radial-gradient(circle, rgba(56, 189, 248, 0.3) 0%, rgba(2, 132, 199, 0.2) 50%, transparent 100%);
+            }
+
+            100% {
+                background: radial-gradient(circle, rgba(125, 211, 252, 0.3) 0%, rgba(186, 230, 253, 0.2) 50%, transparent 100%);
+            }
+        }
+
+        @keyframes colorChange5 {
+            0% {
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.2) 50%, transparent 100%);
+            }
+
+            33% {
+                background: radial-gradient(circle, rgba(29, 78, 216, 0.3) 0%, rgba(30, 64, 175, 0.2) 50%, transparent 100%);
+            }
+
+            66% {
+                background: radial-gradient(circle, rgba(96, 165, 250, 0.3) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 100%);
+            }
+
+            100% {
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.2) 50%, transparent 100%);
+            }
+        }
+
+        @keyframes colorChange6 {
+            0% {
+                background: radial-gradient(circle, rgba(96, 165, 250, 0.4) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 100%);
+            }
+
+            33% {
+                background: radial-gradient(circle, rgba(37, 99, 235, 0.4) 0%, rgba(29, 78, 216, 0.2) 50%, transparent 100%);
+            }
+
+            66% {
+                background: radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, rgba(14, 165, 233, 0.2) 50%, transparent 100%);
+            }
+
+            100% {
+                background: radial-gradient(circle, rgba(96, 165, 250, 0.4) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 100%);
+            }
+        }
+
+        /* Particle animations */
+        @keyframes particleFloat1 {
+            0% {
+                transform: translate(0, 0) scale(1);
+                filter: blur(15px);
+            }
+
+            25% {
+                transform: translate(120px, -80px) scale(1.5);
+                filter: blur(20px);
+            }
+
+            50% {
+                transform: translate(200px, 0) scale(1.2);
+                filter: blur(18px);
+            }
+
+            75% {
+                transform: translate(100px, 100px) scale(0.8);
+                filter: blur(12px);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1);
+                filter: blur(15px);
+            }
+        }
+
+        @keyframes particleFloat2 {
+            0% {
+                transform: translate(0, 0) scale(1);
+                filter: blur(15px);
+            }
+
+            33% {
+                transform: translate(-100px, -50px) scale(1.4);
+                filter: blur(22px);
+            }
+
+            66% {
+                transform: translate(-150px, 80px) scale(0.9);
+                filter: blur(13px);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1);
+                filter: blur(15px);
+            }
+        }
+
+        @keyframes particleFloat3 {
+            0% {
+                transform: translate(0, 0) scale(1);
+                filter: blur(15px);
+            }
+
+            20% {
+                transform: translate(-60px, -120px) scale(1.3);
+                filter: blur(20px);
+            }
+
+            40% {
+                transform: translate(-120px, -180px) scale(1.6);
+                filter: blur(25px);
+            }
+
+            60% {
+                transform: translate(-150px, -100px) scale(1.4);
+                filter: blur(22px);
+            }
+
+            80% {
+                transform: translate(-80px, -40px) scale(1.1);
+                filter: blur(17px);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1);
+                filter: blur(15px);
+            }
+        }
+
+        @keyframes particleFloat4 {
+            0% {
+                transform: translate(0, 0) scale(1);
+                filter: blur(15px);
+            }
+
+            25% {
+                transform: translate(80px, -60px) scale(1.2);
+                filter: blur(18px);
+            }
+
+            50% {
+                transform: translate(150px, -30px) scale(1.5);
+                filter: blur(22px);
+            }
+
+            75% {
+                transform: translate(100px, 40px) scale(1.3);
+                filter: blur(20px);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1);
+                filter: blur(15px);
+            }
+        }
+
+        @keyframes particleOpacity {
+            0% {
+                opacity: 0.2;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+
+            100% {
+                opacity: 0.2;
+            }
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0.5rem 0;
+            animation: glow 3s ease-in-out infinite alternate;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+                margin: 1rem 0;
+            }
+        }
+
+        h2 {
+            font-weight: 300;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            max-width: 800px;
+            margin: 0 auto 0.5rem;
+            padding: 0 0.5rem;
+            flex-shrink: 0;
+            line-height: 1.3;
+        }
+
+        @media (min-width: 768px) {
+            h2 {
+                font-size: 1.1rem;
+                margin: 0 auto 1rem;
+                padding: 0;
+                line-height: 1.4;
+            }
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #06b6d4;
+            }
+
+            to {
+                text-shadow: 0 0 20px #a78bfa;
+            }
+        }
+
+        .content-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex: 1;
+            min-height: 0;
+            padding: 1rem;
+        }
+
+        .tagline {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-style: italic;
+            margin: 0.5rem 0;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            .tagline {
+                font-size: 1rem;
+                margin: 1rem 0;
+            }
+        }
+
+        .logo {
+            width: 200px;
+            height: auto;
+            margin: 5px;
+            text-align: center;
+            object-fit: contain;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        /* Result Container Styles */
+        .result-container {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1.5rem auto;
+            max-width: 90%;
+            width: 800px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            margin: 0 auto 1rem;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            color: #f9fafb;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+        }
+
+        .result-details {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            margin-bottom: 1.5rem;
+        }
+
+        .param-row {
+            display: flex;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .param-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .param-label {
+            font-weight: 600;
+            color: #a5f3fc;
+            min-width: 100px;
+            margin-right: 1rem;
+        }
+
+        .param-value {
+            color: #f9fafb;
+            font-family: monospace;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 0.5rem;
+            border-radius: 6px;
+            overflow-wrap: break-word;
+            word-break: break-all;
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .copy-btn, .download-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 6px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            color: #a5f3fc;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .copy-btn:hover, .download-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.6);
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        /* Modal Dialog */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: #f9fafb;
+            text-align: center;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 0.8rem;
+            color: #f9fafb;
+            font-family: monospace;
+            margin-bottom: 1.5rem;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .modal-close:hover {
+            color: #f9fafb;
+        }
+
+        /* Footer Styles */
+        .footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            flex-shrink: 0;
+            font-size: 0.8rem;
+            color: #64748b;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            position: relative;
+            width: 100%;
+            bottom: 0;
+        }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        @media (min-width: 768px) {
+            .footer {
+                font-size: 0.9rem;
+                padding: 0.75rem;
+                margin-top: 1rem;
+            }
+        }
+
+        .footer-text {
+            font-weight: 300;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .result-container {
+                padding: 1rem;
+                margin: 1rem auto;
+                width: 95%;
+            }
+
+            .result-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+
+            .result-title {
+                font-size: 1.2rem;
+                margin-bottom: 1rem;
+            }
+
+            .param-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .param-label {
+                margin-bottom: 0.5rem;
+            }
+
+            .action-row {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .copy-btn, .download-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Dynamic Floating Background -->
+    <div class="background-animation">
+        <div class="floating-gradient gradient-1"></div>
+        <div class="floating-gradient gradient-2"></div>
+        <div class="floating-gradient gradient-3"></div>
+        <div class="floating-gradient gradient-4"></div>
+        <div class="floating-gradient gradient-5"></div>
+        <div class="floating-gradient gradient-6"></div>
+        <!-- Additional particle elements -->
+        <div class="particle particle-1"></div>
+        <div class="particle particle-2"></div>
+        <div class="particle particle-3"></div>
+        <div class="particle particle-4"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <h1>Falcon Signatures</h1>
+        <h2>Post-Quantum Cryptography Demo</h2>
+        <div class="tagline">
+            A JavaScript implementation of the Falcon post-quantum signature algorithm
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="content-container">
+        <button id="generateBtn" class="action-button">Generate Falcon Keys</button>
+        <div class="spinner" id="spinner"></div>
+
+        <!-- Results Container -->
+        <div id="resultsContainer" class="result-container">
+            <div class="result-icon">🔑</div>
+            <h3 class="result-title">Falcon Keys Generated</h3>
+            
+            <div class="result-details">
+                <div class="param-row">
+                    <span class="param-label">Public Key:</span>
+                    <div class="param-value" id="publicKeyValue"></div>
+                    <div class="action-row">
+                        <button class="copy-btn" onclick="copyToClipboard('publicKeyValue')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                            </svg>
+                            Copy
+                        </button>
+                        <button class="download-btn" onclick="downloadData('publicKeyValue', 'falcon_pk.txt')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="param-row">
+                    <span class="param-label">Secret Key:</span>
+                    <div class="param-value" id="secretKeyValue"></div>
+                    <div class="action-row">
+                        <button class="copy-btn" onclick="copyToClipboard('secretKeyValue')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                            </svg>
+                            Copy
+                        </button>
+                        <button class="download-btn" onclick="downloadData('secretKeyValue', 'falcon_sk.txt')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-row">
+                <button id="signBtn" class="action-button secondary-button">Sign Message</button>
+                <button id="verifyBtn" class="action-button secondary-button">Verify Signature</button>
+            </div>
+        </div>
+
+        <!-- Signature Results Container -->
+        <div id="signatureContainer" class="result-container">
+            <div class="result-icon">✍️</div>
+            <h3 class="result-title">Message Signed</h3>
+            
+            <div class="result-details">
+                <div class="param-row">
+                    <span class="param-label">Message:</span>
+                    <div class="param-value" id="signedMessageValue"></div>
+                    <div class="action-row">
+                        <button class="copy-btn" onclick="copyToClipboard('signedMessageValue')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                            </svg>
+                            Copy
+                        </button>
+                        <button class="download-btn" onclick="downloadData('signedMessageValue', 'falcon_message.txt')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="param-row">
+                    <span class="param-label">Signature:</span>
+                    <div class="param-value" id="signatureValue"></div>
+                    <div class="action-row">
+                        <button class="copy-btn" onclick="copyToClipboard('signatureValue')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                            </svg>
+                            Copy
+                        </button>
+                        <button class="download-btn" onclick="downloadData('signatureValue', 'falcon_sig.txt')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-row">
+                <button id="backToKeysBtn" class="action-button secondary-button">Back to Keys</button>
+                <button id="verifySignatureBtn" class="action-button secondary-button">Verify This Signature</button>
+            </div>
+        </div>
+
+        <!-- Verification Results Container -->
+        <div id="verificationContainer" class="result-container">
+            <div class="result-icon" id="verificationIcon">❓</div>
+            <h3 class="result-title" id="verificationTitle">Signature Verification</h3>
+            
+            <div class="result-details">
+                <div class="param-row">
+                    <span class="param-label">Message:</span>
+                    <div class="param-value" id="verifyMessageValue"></div>
+                </div>
+                
+                <div class="param-row">
+                    <span class="param-label">Signature:</span>
+                    <div class="param-value" id="verifySignatureValue"></div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Public Key:</span>
+                    <div class="param-value" id="verifyPublicKeyValue"></div>
+                </div>
+            </div>
+
+            <div id="verificationResult" class="success-message">
+                ✅ Signature verified successfully! The message was signed by the owner of this public key.
+            </div>
+
+            <div id="verificationError" class="error-message">
+                ❌ Signature verification failed! The message may have been tampered with or signed with a different key.
+            </div>
+
+            <div class="action-row">
+                <button id="backToSignatureBtn" class="action-button secondary-button">Back to Signature</button>
+                <button id="startOverBtn" class="action-button secondary-button">Start Over</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign Message Modal -->
+    <div id="signModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('signModal')">&times;</button>
+            <h3 class="modal-title">Enter Message to Sign</h3>
+            <textarea id="messageInput" class="modal-input" placeholder="Type your message here..."></textarea>
+            <div class="modal-buttons">
+                <button class="action-button secondary-button" onclick="closeModal('signModal')">Cancel</button>
+                <button class="action-button secondary-button" onclick="signMessage()">Sign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verify Signature Modal -->
+    <div id="verifyModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('verifyModal')">&times;</button>
+            <h3 class="modal-title">Verify a Signature</h3>
+            
+            <div class="param-row">
+                <span class="param-label">Message:</span>
+                <textarea id="verifyMessageInput" class="modal-input" placeholder="Enter the original message..."></textarea>
+            </div>
+            
+            <div class="param-row">
+                <span class="param-label">Signature:</span>
+                <textarea id="verifySignatureInput" class="modal-input" placeholder="Enter the signature (hex format)..."></textarea>
+            </div>
+            
+            <div class="param-row">
+                <span class="param-label">Public Key:</span>
+                <textarea id="verifyPublicKeyInput" class="modal-input" placeholder="Enter the public key (hex format)..."></textarea>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="action-button secondary-button" onclick="closeModal('verifyModal')">Cancel</button>
+                <button class="action-button secondary-button" onclick="verifySignature()">Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <span class="footer-text">Falcon Post-Quantum Signatures</span>
+        </div>
+        <span class="footer-text">&copy; 2025 All rights reserved</span>
+    </footer>
+
+    <!-- Load WebAssembly Module -->
+    <script type="module">
+        import ModuleFactory from './falcon.js';
+        
+        let Module;
+        let publicKey, secretKey, signature, signedMessage;
+
+        // Initialize the WebAssembly module
+        async function initModule() {
+            try {
+                Module = await ModuleFactory();
+                document.getElementById('generateBtn').disabled = false;
+                console.log("Falcon WebAssembly module loaded successfully");
+            } catch (error) {
+                console.error("Failed to load Falcon WebAssembly module:", error);
+                alert("Failed to load the Falcon module. Please check the console for details.");
+            }
+        }
+
+        // Helper functions for hex conversion
+        function hexToBytes(hex) {
+            return new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+        }
+
+        function bytesToHex(bytes) {
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+        }
+
+        // Generate Falcon keypair
+        window.generateKeys = async function() {
+            if (!Module) {
+                alert("Module not loaded yet. Please wait.");
+                return;
+            }
+
+            const spinner = document.getElementById('spinner');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            generateBtn.disabled = true;
+            spinner.style.display = 'block';
+
+            // Use setTimeout to allow the UI to update before the heavy computation
+            setTimeout(() => {
+                try {
+                    // Get key sizes
+                    const PK_LEN = Module._get_pk_size();
+                    const SK_LEN = Module._get_sk_size();
+                    
+                    // Allocate memory for public and private keys
+                    const pkPtr = Module._malloc(PK_LEN);
+                    const skPtr = Module._malloc(SK_LEN);
+                    
+                    // Generate keypair
+                    const result = Module._simple_keygen(skPtr, pkPtr);
+                    if (result !== 0) {
+                        throw new Error("Keygen failed with error code: " + result);
+                    }
+                    
+                    // Extract the keys
+                    const pk = new Uint8Array(Module.HEAPU8.buffer, pkPtr, PK_LEN);
+                    const sk = new Uint8Array(Module.HEAPU8.buffer, skPtr, SK_LEN);
+                    
+                    // Convert to hex for storage and display
+                    publicKey = bytesToHex(pk);
+                    secretKey = bytesToHex(sk);
+                    
+                    // Display the keys in truncated format
+                    const truncateKey = (key) => {
+                        if (key.length <= 40) return key;
+                        return key.substring(0, 20) + '...' + key.substring(key.length - 20);
+                    };
+                    
+                    // Store full keys but display truncated versions
+                    document.getElementById('publicKeyValue').textContent = truncateKey(publicKey);
+                    document.getElementById('publicKeyValue').setAttribute('data-full-key', publicKey);
+                    document.getElementById('secretKeyValue').textContent = truncateKey(secretKey);
+                    document.getElementById('secretKeyValue').setAttribute('data-full-key', secretKey);
+                    
+                    // Show the results container
+                    document.getElementById('resultsContainer').style.display = 'block';
+                    
+                    // Free allocated memory
+                    Module._free(pkPtr);
+                    Module._free(skPtr);
+                } catch (error) {
+                    console.error("Error generating keys:", error);
+                    alert("Failed to generate keys: " + error.message);
+                } finally {
+                    spinner.style.display = 'none';
+                    generateBtn.disabled = false;
+                }
+            }, 100);
+        };
+
+        // Sign a message
+        window.signMessage = function() {
+            if (!Module || !secretKey) {
+                alert("Module not loaded or no secret key available.");
+                return;
+            }
+
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                alert("Please enter a message to sign.");
+                return;
+            }
+
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'block';
+            
+            // Close the modal
+            closeModal('signModal');
+
+            // Use setTimeout to allow the UI to update before the heavy computation
+            setTimeout(() => {
+                try {
+                    // Convert message to bytes
+                    const msgBytes = new TextEncoder().encode(message);
+                    
+                    // Get key and signature sizes
+                    const SK_LEN = Module._get_sk_size();
+                    const SIG_MAX = Module._get_sig_max_size();
+                    
+                    // Convert secret key from hex to bytes
+                    const skBytes = hexToBytes(secretKey);
+                    
+                    // Allocate memory for message, secret key, signature, and signature length
+                    const msgPtr = Module._malloc(msgBytes.length);
+                    const skPtr = Module._malloc(SK_LEN);
+                    const sigPtr = Module._malloc(SIG_MAX);
+                    const sigLenPtr = Module._malloc(4);
+                    
+                    // Copy message and secret key to WebAssembly memory
+                    Module.HEAPU8.set(msgBytes, msgPtr);
+                    Module.HEAPU8.set(skBytes, skPtr);
+                    
+                    // Initialize the signature length pointer with the buffer size
+                    Module.setValue(sigLenPtr, SIG_MAX, "i32");
+                    
+                    // Sign the message
+                    const signResult = Module._simple_sign(sigPtr, sigLenPtr, skPtr, msgPtr, msgBytes.length);
+                    
+                    if (signResult !== 0) {
+                        throw new Error("Signing failed with error code: " + signResult);
+                    }
+                    
+                    // Get signature length and copy signature from WebAssembly memory
+                    const sigLen = Module.getValue(sigLenPtr, "i32");
+                    const sig = new Uint8Array(Module.HEAPU8.buffer, sigPtr, sigLen).slice();
+                    
+                    // Convert signature to hex for display
+                    signature = bytesToHex(sig);
+                    signedMessage = message;
+                    
+                    // Display the signature and message (truncate signature)
+                    const truncateSignature = (sig) => {
+                        if (sig.length <= 40) return sig;
+                        return sig.substring(0, 20) + '...' + sig.substring(sig.length - 20);
+                    };
+                    
+                    document.getElementById('signedMessageValue').textContent = signedMessage;
+                    document.getElementById('signatureValue').textContent = truncateSignature(signature);
+                    document.getElementById('signatureValue').setAttribute('data-full-signature', signature);
+                    
+                    // Show the signature container
+                    document.getElementById('resultsContainer').style.display = 'none';
+                    document.getElementById('signatureContainer').style.display = 'block';
+                    
+                    // Free allocated memory
+                    Module._free(msgPtr);
+                    Module._free(skPtr);
+                    Module._free(sigPtr);
+                    Module._free(sigLenPtr);
+                } catch (error) {
+                    console.error("Error signing message:", error);
+                    alert("Failed to sign message: " + error.message);
+                } finally {
+                    spinner.style.display = 'none';
+                }
+            }, 100);
+        };
+
+        // Verify a signature
+        window.verifySignature = function() {
+            if (!Module) {
+                alert("Module not loaded yet. Please wait.");
+                return;
+            }
+
+            let msg, sig, pk;
+            
+            // Check if we're verifying from the modal or from the signature container
+            if (document.getElementById('verifyModal').style.display === 'flex') {
+                // Get values from the modal inputs
+                msg = document.getElementById('verifyMessageInput').value.trim();
+                sig = document.getElementById('verifySignatureInput').value.trim();
+                pk = document.getElementById('verifyPublicKeyInput').value.trim();
+                
+                // Close the modal
+                closeModal('verifyModal');
+            } else {
+                // Use the values from the current signature
+                msg = signedMessage;
+                sig = signature;
+                pk = publicKey;
+            }
+            
+            if (!msg || !sig || !pk) {
+                alert("Please provide a message, signature, and public key.");
+                return;
+            }
+
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'block';
+
+            // Use setTimeout to allow the UI to update before the heavy computation
+            setTimeout(() => {
+                try {
+                    // Convert message to bytes
+                    const msgBytes = new TextEncoder().encode(msg);
+                    
+                    // Convert signature and public key from hex to bytes
+                    const sigBytes = hexToBytes(sig);
+                    const pkBytes = hexToBytes(pk);
+                    
+                    // Get public key size
+                    const PK_LEN = Module._get_pk_size();
+                    
+                    // Allocate memory for message, signature, and public key
+                    const msgPtr = Module._malloc(msgBytes.length);
+                    const sigPtr = Module._malloc(sigBytes.length);
+                    const pkPtr = Module._malloc(PK_LEN);
+                    
+                    // Copy message, signature, and public key to WebAssembly memory
+                    Module.HEAPU8.set(msgBytes, msgPtr);
+                    Module.HEAPU8.set(sigBytes, sigPtr);
+                    Module.HEAPU8.set(pkBytes, pkPtr);
+                    
+                    // Verify the signature
+                    const verifyResult = Module._simple_verify(sigPtr, sigBytes.length, pkPtr, msgPtr, msgBytes.length);
+                    
+                    // Display the verification result with truncated values
+                    const truncateValue = (value) => {
+                        if (value.length <= 40) return value;
+                        return value.substring(0, 20) + '...' + value.substring(value.length - 20);
+                    };
+                    
+                    document.getElementById('verifyMessageValue').textContent = msg;
+                    document.getElementById('verifySignatureValue').textContent = truncateValue(sig);
+                    document.getElementById('verifySignatureValue').setAttribute('data-full-value', sig);
+                    document.getElementById('verifyPublicKeyValue').textContent = truncateValue(pk);
+                    document.getElementById('verifyPublicKeyValue').setAttribute('data-full-value', pk);
+                    
+                    if (verifyResult === 0) {
+                        // Verification successful
+                        document.getElementById('verificationIcon').textContent = '✅';
+                        document.getElementById('verificationTitle').textContent = 'Signature Verified';
+                        document.getElementById('verificationResult').style.display = 'block';
+                        document.getElementById('verificationError').style.display = 'none';
+                    } else {
+                        // Verification failed
+                        document.getElementById('verificationIcon').textContent = '❌';
+                        document.getElementById('verificationTitle').textContent = 'Verification Failed';
+                        document.getElementById('verificationResult').style.display = 'none';
+                        document.getElementById('verificationError').style.display = 'block';
+                    }
+                    
+                    // Show the verification container
+                    document.getElementById('resultsContainer').style.display = 'none';
+                    document.getElementById('signatureContainer').style.display = 'none';
+                    document.getElementById('verificationContainer').style.display = 'block';
+                    
+                    // Free allocated memory
+                    Module._free(msgPtr);
+                    Module._free(sigPtr);
+                    Module._free(pkPtr);
+                } catch (error) {
+                    console.error("Error verifying signature:", error);
+                    alert("Failed to verify signature: " + error.message);
+                } finally {
+                    spinner.style.display = 'none';
+                }
+            }, 100);
+        };
+
+        // Initialize the module when the page loads
+        initModule().then(() => {
+            // Automatically generate keys when the module is loaded
+            generateKeys();
+        });
+
+        // Make functions available globally
+        window.initModule = initModule;
+    </script>
+
+    <!-- Utility Functions -->
+    <script>
+        // Copy to clipboard
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            // Use the full value if available, otherwise use the displayed text
+            const text = element.getAttribute('data-full-key') || 
+                         element.getAttribute('data-full-signature') || 
+                         element.getAttribute('data-full-value') || 
+                         element.textContent;
+            
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    // Show a temporary success message
+                    const originalText = element.innerHTML;
+                    element.innerHTML = '<span style="color: #10b981;">✓ Copied to clipboard!</span>';
+                    setTimeout(() => {
+                        element.innerHTML = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    alert('Failed to copy to clipboard: ' + err);
+                });
+        }
+
+        // Download data as a file
+        function downloadData(elementId, filename) {
+            const element = document.getElementById(elementId);
+            // Use the full value if available, otherwise use the displayed text
+            const text = element.getAttribute('data-full-key') || 
+                         element.getAttribute('data-full-signature') || 
+                         element.getAttribute('data-full-value') || 
+                         element.textContent;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 0);
+        }
+
+        // Open modal
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.style.display = 'flex';
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.style.display = 'none';
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Generate keys button
+            document.getElementById('generateBtn').addEventListener('click', generateKeys);
+            
+            // Sign message button
+            document.getElementById('signBtn').addEventListener('click', function() {
+                openModal('signModal');
+            });
+            
+            // Verify signature button
+            document.getElementById('verifyBtn').addEventListener('click', function() {
+                openModal('verifyModal');
+            });
+            
+            // Back to keys button
+            document.getElementById('backToKeysBtn').addEventListener('click', function() {
+                document.getElementById('signatureContainer').style.display = 'none';
+                document.getElementById('resultsContainer').style.display = 'block';
+            });
+            
+            // Verify this signature button
+            document.getElementById('verifySignatureBtn').addEventListener('click', function() {
+                verifySignature();
+            });
+            
+            // Back to signature button
+            document.getElementById('backToSignatureBtn').addEventListener('click', function() {
+                document.getElementById('verificationContainer').style.display = 'none';
+                document.getElementById('signatureContainer').style.display = 'block';
+            });
+            
+            // Start over button
+            document.getElementById('startOverBtn').addEventListener('click', function() {
+                document.getElementById('verificationContainer').style.display = 'none';
+                document.getElementById('resultsContainer').style.display = 'block';
+            });
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    closeModal(event.target.id);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

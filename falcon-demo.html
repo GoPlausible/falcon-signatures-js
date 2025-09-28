@@ -14,11 +14,11 @@
             color: #f9fafb;
             text-align: center;
             position: relative;
-            overflow: hidden;
-            height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
         }
 
         @media (min-width: 768px) {
@@ -735,12 +735,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             width: 100%;
             max-width: 1200px;
             margin: 0 auto;
             flex: 1;
-            min-height: 0;
             padding: 1rem;
         }
 
@@ -840,8 +838,8 @@
         .param-row {
             display: flex;
             margin-bottom: 0.75rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1
+            padding-bottom: 1.75rem;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
             align-items: center;
             flex-wrap: wrap;
         }
@@ -991,7 +989,7 @@
             justify-content: center;
             gap: 0.75rem;
             padding: 0.5rem;
-            margin-top: 0.5rem;
+            margin-top: 2rem;
             flex-shrink: 0;
             font-size: 0.8rem;
             color: #64748b;
@@ -999,6 +997,7 @@
             position: relative;
             width: 100%;
             bottom: 0;
+            z-index: 10;
         }
 
         .footer-content {
@@ -1012,7 +1011,7 @@
         @media (min-width: 768px) {
             .footer {
                 font-size: 0.9rem;
-                padding: 0.75rem;
+                padding: 1.75rem;
                 margin-top: 1rem;
             }
         }
@@ -1085,12 +1084,13 @@
         <div class="tagline">
             A JavaScript implementation of the Falcon post-quantum signature algorithm
         </div>
+        <button id="generateBtn" class="action-button">Generate Falcon Keys</button>
+        <button id="resetBtn" class="action-button" style="display: none;">Reset Demo</button>
+        <div class="spinner" id="spinner"></div>
     </header>
 
     <!-- Main Content -->
     <div class="content-container">
-        <button id="generateBtn" class="action-button">Generate Falcon Keys</button>
-        <div class="spinner" id="spinner"></div>
 
         <!-- Results Container -->
         <div id="resultsContainer" class="result-container">
@@ -1285,7 +1285,7 @@
         <div class="footer-content">
             <span class="footer-text">Falcon Post-Quantum Signatures</span>
         </div>
-        <span class="footer-text">&copy; 2025 All rights reserved</span>
+        <a class="footer-text" href="https://github.com/algorand/falcon" target="_blank" rel="noopener noreferrer">Algorand Falcon GitHub Repository</a>
     </footer>
 
     <!-- Load WebAssembly Module -->
@@ -1366,8 +1366,10 @@
                     document.getElementById('secretKeyValue').textContent = truncateKey(secretKey);
                     document.getElementById('secretKeyValue').setAttribute('data-full-key', secretKey);
                     
-                    // Show the results container
+                    // Show the results container and hide generate button, show reset button
                     document.getElementById('resultsContainer').style.display = 'block';
+                    document.getElementById('generateBtn').style.display = 'none';
+                    document.getElementById('resetBtn').style.display = 'block';
                     
                     // Free allocated memory
                     Module._free(pkPtr);
@@ -1683,6 +1685,18 @@
             document.getElementById('startOverBtn').addEventListener('click', function() {
                 document.getElementById('verificationContainer').style.display = 'none';
                 document.getElementById('resultsContainer').style.display = 'block';
+            });
+            
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                // Hide all result containers
+                document.getElementById('resultsContainer').style.display = 'none';
+                document.getElementById('signatureContainer').style.display = 'none';
+                document.getElementById('verificationContainer').style.display = 'none';
+                
+                // Show generate button, hide reset button
+                document.getElementById('generateBtn').style.display = 'block';
+                document.getElementById('resetBtn').style.display = 'none';
             });
             
             // Close modals when clicking outside

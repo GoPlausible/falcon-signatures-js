@@ -1288,21 +1288,23 @@
         <a class="footer-text" href="https://github.com/algorand/falcon" target="_blank" rel="noopener noreferrer">Algorand Falcon GitHub Repository</a>
     </footer>
 
-    <!-- Load WebAssembly Module -->
+    <!-- Load Falcon Module -->
     <script type="module">
-        import ModuleFactory from './falcon.js';
+        import Falcon from './index.js';
         
-        let Module;
+        let falconInstance;
         let publicKey, secretKey, signature, signedMessage;
 
-        // Initialize the WebAssembly module
+        // Initialize the Falcon module
         async function initModule() {
             try {
-                Module = await ModuleFactory();
+                falconInstance = new Falcon();
+                // Wait for initialization
+                await falconInstance._ensureInitialized();
                 document.getElementById('generateBtn').disabled = false;
-                console.log("Falcon WebAssembly module loaded successfully");
+                console.log("Falcon module loaded successfully");
             } catch (error) {
-                console.error("Failed to load Falcon WebAssembly module:", error);
+                console.error("Failed to load Falcon module:", error);
                 alert("Failed to load the Falcon module. Please check the console for details.");
             }
         }
@@ -1318,8 +1320,8 @@
 
         // Generate Falcon keypair
         window.generateKeys = async function() {
-            if (!Module) {
-                alert("Module not loaded yet. Please wait.");
+            if (!falconInstance) {
+                alert("Falcon module not loaded yet. Please wait.");
                 return;
             }
 
@@ -1330,29 +1332,14 @@
             spinner.style.display = 'block';
 
             // Use setTimeout to allow the UI to update before the heavy computation
-            setTimeout(() => {
+            setTimeout(async () => {
                 try {
-                    // Get key sizes
-                    const PK_LEN = Module._get_pk_size();
-                    const SK_LEN = Module._get_sk_size();
+                    // Generate keypair using our Falcon class
+                    const keys = await falconInstance.keypair();
                     
-                    // Allocate memory for public and private keys
-                    const pkPtr = Module._malloc(PK_LEN);
-                    const skPtr = Module._malloc(SK_LEN);
-                    
-                    // Generate keypair
-                    const result = Module._simple_keygen(skPtr, pkPtr);
-                    if (result !== 0) {
-                        throw new Error("Keygen failed with error code: " + result);
-                    }
-                    
-                    // Extract the keys
-                    const pk = new Uint8Array(Module.HEAPU8.buffer, pkPtr, PK_LEN);
-                    const sk = new Uint8Array(Module.HEAPU8.buffer, skPtr, SK_LEN);
-                    
-                    // Convert to hex for storage and display
-                    publicKey = bytesToHex(pk);
-                    secretKey = bytesToHex(sk);
+                    // Convert keys to hex for storage and display
+                    publicKey = Falcon.bytesToHex(keys.publicKey);
+                    secretKey = Falcon.bytesToHex(keys.secretKey);
                     
                     // Display the keys in truncated format
                     const truncateKey = (key) => {
@@ -1370,10 +1357,6 @@
                     document.getElementById('resultsContainer').style.display = 'block';
                     document.getElementById('generateBtn').style.display = 'none';
                     document.getElementById('resetBtn').style.display = 'block';
-                    
-                    // Free allocated memory
-                    Module._free(pkPtr);
-                    Module._free(skPtr);
                 } catch (error) {
                     console.error("Error generating keys:", error);
                     alert("Failed to generate keys: " + error.message);
@@ -1386,8 +1369,8 @@
 
         // Sign a message
         window.signMessage = function() {
-            if (!Module || !secretKey) {
-                alert("Module not loaded or no secret key available.");
+            if (!falconInstance || !secretKey) {
+                alert("Falcon module not loaded or no secret key available.");
                 return;
             }
 
@@ -1406,44 +1389,13 @@
             closeModal('signModal');
 
             // Use setTimeout to allow the UI to update before the heavy computation
-            setTimeout(() => {
+            setTimeout(async () => {
                 try {
-                    // Convert message to bytes
-                    const msgBytes = new TextEncoder().encode(message);
-                    
-                    // Get key and signature sizes
-                    const SK_LEN = Module._get_sk_size();
-                    const SIG_MAX = Module._get_sig_max_size();
-                    
-                    // Convert secret key from hex to bytes
-                    const skBytes = hexToBytes(secretKey);
-                    
-                    // Allocate memory for message, secret key, signature, and signature length
-                    const msgPtr = Module._malloc(msgBytes.length);
-                    const skPtr = Module._malloc(SK_LEN);
-                    const sigPtr = Module._malloc(SIG_MAX);
-                    const sigLenPtr = Module._malloc(4);
-                    
-                    // Copy message and secret key to WebAssembly memory
-                    Module.HEAPU8.set(msgBytes, msgPtr);
-                    Module.HEAPU8.set(skBytes, skPtr);
-                    
-                    // Initialize the signature length pointer with the buffer size
-                    Module.setValue(sigLenPtr, SIG_MAX, "i32");
-                    
-                    // Sign the message
-                    const signResult = Module._simple_sign(sigPtr, sigLenPtr, skPtr, msgPtr, msgBytes.length);
-                    
-                    if (signResult !== 0) {
-                        throw new Error("Signing failed with error code: " + signResult);
-                    }
-                    
-                    // Get signature length and copy signature from WebAssembly memory
-                    const sigLen = Module.getValue(sigLenPtr, "i32");
-                    const sig = new Uint8Array(Module.HEAPU8.buffer, sigPtr, sigLen).slice();
+                    // Sign the message using our Falcon class
+                    const sig = await falconInstance.sign(message, secretKey);
                     
                     // Convert signature to hex for display
-                    signature = bytesToHex(sig);
+                    signature = Falcon.bytesToHex(sig);
                     signedMessage = message;
                     
                     // Display the signature and message (truncate signature)
@@ -1459,12 +1411,6 @@
                     // Show the signature container
                     document.getElementById('resultsContainer').style.display = 'none';
                     document.getElementById('signatureContainer').style.display = 'block';
-                    
-                    // Free allocated memory
-                    Module._free(msgPtr);
-                    Module._free(skPtr);
-                    Module._free(sigPtr);
-                    Module._free(sigLenPtr);
                 } catch (error) {
                     console.error("Error signing message:", error);
                     alert("Failed to sign message: " + error.message);
@@ -1476,8 +1422,8 @@
 
         // Verify a signature
         window.verifySignature = function() {
-            if (!Module) {
-                alert("Module not loaded yet. Please wait.");
+            if (!falconInstance) {
+                alert("Falcon module not loaded yet. Please wait.");
                 return;
             }
 
@@ -1508,30 +1454,10 @@
             spinner.style.display = 'block';
 
             // Use setTimeout to allow the UI to update before the heavy computation
-            setTimeout(() => {
+            setTimeout(async () => {
                 try {
-                    // Convert message to bytes
-                    const msgBytes = new TextEncoder().encode(msg);
-                    
-                    // Convert signature and public key from hex to bytes
-                    const sigBytes = hexToBytes(sig);
-                    const pkBytes = hexToBytes(pk);
-                    
-                    // Get public key size
-                    const PK_LEN = Module._get_pk_size();
-                    
-                    // Allocate memory for message, signature, and public key
-                    const msgPtr = Module._malloc(msgBytes.length);
-                    const sigPtr = Module._malloc(sigBytes.length);
-                    const pkPtr = Module._malloc(PK_LEN);
-                    
-                    // Copy message, signature, and public key to WebAssembly memory
-                    Module.HEAPU8.set(msgBytes, msgPtr);
-                    Module.HEAPU8.set(sigBytes, sigPtr);
-                    Module.HEAPU8.set(pkBytes, pkPtr);
-                    
-                    // Verify the signature
-                    const verifyResult = Module._simple_verify(sigPtr, sigBytes.length, pkPtr, msgPtr, msgBytes.length);
+                    // Verify the signature using our Falcon class
+                    const result = await falconInstance.verify(msg, sig, pk);
                     
                     // Display the verification result with truncated values
                     const truncateValue = (value) => {
@@ -1545,7 +1471,7 @@
                     document.getElementById('verifyPublicKeyValue').textContent = truncateValue(pk);
                     document.getElementById('verifyPublicKeyValue').setAttribute('data-full-value', pk);
                     
-                    if (verifyResult === 0) {
+                    if (result) {
                         // Verification successful
                         document.getElementById('verificationIcon').textContent = '✅';
                         document.getElementById('verificationTitle').textContent = 'Signature Verified';
@@ -1563,11 +1489,6 @@
                     document.getElementById('resultsContainer').style.display = 'none';
                     document.getElementById('signatureContainer').style.display = 'none';
                     document.getElementById('verificationContainer').style.display = 'block';
-                    
-                    // Free allocated memory
-                    Module._free(msgPtr);
-                    Module._free(sigPtr);
-                    Module._free(pkPtr);
                 } catch (error) {
                     console.error("Error verifying signature:", error);
                     alert("Failed to verify signature: " + error.message);

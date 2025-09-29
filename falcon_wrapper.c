@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
+#include <string.h>
 #include <emscripten/emscripten.h>
 #include "falcon/falcon.h"
 
@@ -26,10 +28,20 @@ EMSCRIPTEN_KEEPALIVE
 int simple_keygen(uint8_t *sk, uint8_t *pk) {
     uint8_t tmp[TMP_KEYGEN];
     shake256_context rng;
+    
+    // Use a random seed based on system time and pointer values for entropy
     uint8_t seed[48];
-    for (int i = 0; i < 48; i++) seed[i] = (uint8_t)(i + 1);
+    
+    // Mix in the current time, pointers, and other sources of entropy
+    for (int i = 0; i < 16; i++) {
+        uint64_t v = (uint64_t)&seed ^ (uint64_t)time(NULL) ^ (uint64_t)clock();
+        v += (uint64_t)rand() << 32;
+        memcpy(seed + i*3, &v, 3);
+    }
+    
+    // Initialize RNG with the random seed
     shake256_init_prng_from_seed(&rng, seed, sizeof(seed));
-
+    
     int r = falcon_keygen_make(&rng, LOGN, sk, SK_SIZE, pk, PK_SIZE, tmp, sizeof(tmp));
     if (r != 0) {
         fprintf(stderr, "[falcon_wrapper] keygen failed: %d\n", r);
@@ -95,10 +107,19 @@ int simple_sign(uint8_t *sig, size_t *sig_len,
         return r;
     }
 
-    // Seed PRNG deterministically (for now)
+    // Use a random seed based on system time and pointer values for entropy
     shake256_context rng;
     uint8_t seed[48];
-    for (int i = 0; i < 48; i++) seed[i] = (uint8_t)(i + 42);
+    
+    // Mix in the current time, pointers, message content, and other sources of entropy
+    for (int i = 0; i < 16; i++) {
+        uint64_t v = (uint64_t)&sig ^ (uint64_t)time(NULL) ^ (uint64_t)clock();
+        v += (uint64_t)(msg_len > i ? msg[i] : 0) << 16;
+        v += (uint64_t)rand() << 32;
+        memcpy(seed + i*3, &v, 3);
+    }
+    
+    // Initialize RNG with the random seed
     shake256_init_prng_from_seed(&rng, seed, sizeof(seed));
 
     // Sign using expanded key

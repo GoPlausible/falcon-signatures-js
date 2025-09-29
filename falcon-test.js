@@ -18,9 +18,29 @@ async function runTests() {
   console.log(`  ✓ Generated public key (${publicKey.length} bytes)`);
   console.log(`  ✓ Generated secret key (${secretKey.length} bytes)`);
   
+  // Display partial keys to verify randomness across runs
+  const pkHex = Falcon.bytesToHex(publicKey);
+  const skHex = Falcon.bytesToHex(secretKey);
+  console.log(`  Public key (first 32 chars): ${pkHex.substring(0, 32)}...`);
+  console.log(`  Secret key (first 32 chars): ${skHex.substring(0, 32)}...`);
+  
+  // Generate a second keypair to test randomness
+  console.log('- Generating a second keypair to test randomness...');
+  const { publicKey: pk2, secretKey: sk2 } = await falcon.keypair();
+  const pk2Hex = Falcon.bytesToHex(pk2);
+  const sk2Hex = Falcon.bytesToHex(sk2);
+  console.log(`  Second public key (first 32 chars): ${pk2Hex.substring(0, 32)}...`);
+  console.log(`  Second secret key (first 32 chars): ${sk2Hex.substring(0, 32)}...`);
+  
+  // Compare keys
+  const keysAreDifferent = pkHex !== pk2Hex;
+  console.log(`  Keys are different: ${keysAreDifferent ? '✓ YES (good)' : '✗ NO (problem)'}`);
+  
   // Verify key sizes are correct
   assert(publicKey.length === 1793, 'Public key should be 1793 bytes');
   assert(secretKey.length === 2305, 'Secret key should be 2305 bytes');
+  // For a proper implementation, keys should be random
+  assert(pkHex !== pk2Hex, 'Different key pairs should produce different public keys');
   
   // Test signing
   console.log('- Testing signing...');

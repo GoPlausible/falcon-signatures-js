@@ -1,0 +1,36 @@
+{
+  "name": "falcon-signatures",
+  "version": "1.0.0",
+  "description": "JavaScript library for Falcon post-quantum cryptography signatures",
+  "main": "index.js",
+  "type": "module",
+  "files": [
+    "index.js",
+    "falcon.js",
+    "falcon.wasm",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node falcon-test.js",
+    "test:cli": "node falcon-cli-test.js"
+  },
+  "keywords": [
+    "cryptography",
+    "post-quantum",
+    "falcon",
+    "signatures",
+    "webassembly",
+    "wasm"
+  ],
+  "author": "GoPlausible",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoPlausible/falcon-signatures-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GoPlausible/falcon-signatures-js/issues"
+  },
+  "homepage": "https://github.com/GoPlausible/falcon-signatures-js#readme"
+}

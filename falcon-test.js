@@ -18,19 +18,23 @@ async function runTests() {
   console.log(`  ✓ Generated public key (${publicKey.length} bytes)`);
   console.log(`  ✓ Generated secret key (${secretKey.length} bytes)`);
   
-  // Display partial keys to verify randomness across runs
+  // Display keys in shortened format (first 20 chars...last 20 chars)
   const pkHex = Falcon.bytesToHex(publicKey);
   const skHex = Falcon.bytesToHex(secretKey);
-  console.log(`  Public key (first 32 chars): ${pkHex.substring(0, 32)}...`);
-  console.log(`  Secret key (first 32 chars): ${skHex.substring(0, 32)}...`);
+  const shortenHex = (hex) => {
+    if (hex.length <= 40) return hex;
+    return hex.substring(0, 20) + '...' + hex.substring(hex.length - 20);
+  };
+  console.log(`  Public key: ${shortenHex(pkHex)}`);
+  console.log(`  Secret key: ${shortenHex(skHex)}`);
   
   // Generate a second keypair to test randomness
   console.log('- Generating a second keypair to test randomness...');
   const { publicKey: pk2, secretKey: sk2 } = await falcon.keypair();
   const pk2Hex = Falcon.bytesToHex(pk2);
   const sk2Hex = Falcon.bytesToHex(sk2);
-  console.log(`  Second public key (first 32 chars): ${pk2Hex.substring(0, 32)}...`);
-  console.log(`  Second secret key (first 32 chars): ${sk2Hex.substring(0, 32)}...`);
+  console.log(`  Second public key: ${shortenHex(pk2Hex)}`);
+  console.log(`  Second secret key: ${shortenHex(sk2Hex)}`);
   
   // Compare keys
   const keysAreDifferent = pkHex !== pk2Hex;
@@ -48,7 +52,9 @@ async function runTests() {
   console.log(`  Message: "${message}"`);
   
   const signature = await falcon.sign(message, secretKey);
+  const sigHex = Falcon.bytesToHex(signature);
   console.log(`  ✓ Generated signature (${signature.length} bytes)`);
+  console.log(`  Signature: ${shortenHex(sigHex)}`);
   
   // Test signature verification
   console.log('- Testing verification...');

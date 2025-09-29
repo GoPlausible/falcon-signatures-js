@@ -3,3 +3,8 @@ memo*
 memo*/*
 falcon_sk.bin
 falcon_sig.bin
+falcon_pk_hex.txt
+.gitignore
+.gitignore
+falcon_sig_hex.txt
+falcon_sk_hex.txt

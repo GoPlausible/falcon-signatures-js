@@ -55,9 +55,17 @@ The implementation uses the deterministic variant of Falcon, which provides repr
 
 ## Installation
 
-### Installation
+### NPM Package
 
-This project is not yet available as an npm package. You need to install it manually:
+You can install the package via npm:
+
+```bash
+npm install falcon-signatures
+```
+
+### Manual Installation
+
+If you prefer to install manually:
 
 1. Clone the repository:
 ```bash
@@ -71,17 +79,13 @@ git submodule init
 git submodule update
 ```
 
-2. Build the WebAssembly module (requires Emscripten):
+3. Build the WebAssembly module (requires Emscripten):
 ```bash
 # First, set up the Emscripten environment
 source /path/to/emsdk/emsdk_env.sh
 
 # Then build the module
-emcc -O3 -s MODULARIZE=1 -s EXPORT_ES6=1 -s ENVIRONMENT=web,worker,node \
-  -s EXPORTED_FUNCTIONS='["_malloc","_free","_simple_keygen","_simple_sign","_simple_verify","_get_sk_size","_get_pk_size","_get_sig_max_size"]' \
-  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAPU8"]' \
-  falcon/common.c falcon/codec.c falcon/deterministic.c falcon/falcon.c falcon/fft.c falcon/fpr.c falcon/keygen.c falcon/rng.c falcon/shake.c falcon/sign.c falcon/vrfy.c falcon_wrapper.c \
-  -o falcon.js
+emcc -O3 -s MODULARIZE=1 -s EXPORT_ES6=1 -s ENVIRONMENT=web,worker,node -s EXPORTED_FUNCTIONS='["_malloc","_free","_simple_keygen","_simple_sign","_simple_verify","_get_sk_size","_get_pk_size","_get_sig_max_size"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAPU8"]' falcon/common.c falcon/codec.c falcon/deterministic.c falcon/falcon.c falcon/fft.c falcon/fpr.c falcon/keygen.c falcon/rng.c falcon/shake.c falcon/sign.c falcon/vrfy.c falcon_wrapper.c -o falcon.js
 ```
 
 ## Usage
@@ -116,242 +120,78 @@ node falcon-cli.js sign "$(cat message.txt)" <hex_secret_key>
 node falcon-cli.js verify "message to verify" <hex_signature> <hex_public_key>
 ```
 
-### Node.js API
+### Node.js and Browser
 
 ```javascript
-import ModuleFactory from './falcon.js'; // If falcon.js is in the root directory
-// OR
-// import ModuleFactory from './falcon/falcon.js'; // If using the original file from the submodule
+// Using ES modules
+import Falcon from 'falcon-signatures';
+
+// Using CommonJS
+// const Falcon = require('falcon-signatures');
 
 async function example() {
-  // Initialize the WebAssembly module
-  const Module = await ModuleFactory();
-  
-  // Get key and signature sizes
-  const PK_LEN = Module._get_pk_size();
-  const SK_LEN = Module._get_sk_size();
-  const SIG_MAX = Module._get_sig_max_size();
+  // Initialize the Falcon instance
+  const falcon = new Falcon();
   
   // Generate a keypair
-  const pkPtr = Module._malloc(PK_LEN);
-  const skPtr = Module._malloc(SK_LEN);
+  console.log('Generating a Falcon keypair...');
+  const { publicKey, secretKey } = await falcon.keypair();
   
-  const result = Module._simple_keygen(skPtr, pkPtr);
-  if (result !== 0) {
-    throw new Error("Keygen failed");
-  }
-  
-  // Extract the keys
-  const pk = new Uint8Array(Module.HEAPU8.buffer, pkPtr, PK_LEN);
-  const sk = new Uint8Array(Module.HEAPU8.buffer, skPtr, SK_LEN);
+  console.log(`Public key length: ${publicKey.length} bytes`);
+  console.log(`Secret key length: ${secretKey.length} bytes`);
   
   // Convert to hex for storage or display
-  const pkHex = Array.from(pk).map(b => b.toString(16).padStart(2, "0")).join("");
-  const skHex = Array.from(sk).map(b => b.toString(16).padStart(2, "0")).join("");
+  const pkHex = Falcon.bytesToHex(publicKey);
+  const skHex = Falcon.bytesToHex(secretKey);
   
-  console.log("Public Key:", pkHex);
-  console.log("Secret Key:", skHex);
+  console.log(`Public key (first 32 chars): ${pkHex.substring(0, 32)}...`);
   
   // Sign a message
-  const message = "Hello, Falcon!";
-  const msgBytes = new TextEncoder().encode(message);
+  const message = 'Hello, Falcon!';
+  console.log(`Signing message: "${message}"`);
   
-  const msgPtr = Module._malloc(msgBytes.length);
-  Module.HEAPU8.set(msgBytes, msgPtr);
-  
-  const sigPtr = Module._malloc(SIG_MAX);
-  const sigLenPtr = Module._malloc(4);
-  Module.setValue(sigLenPtr, SIG_MAX, "i32");
-  
-  const signResult = Module._simple_sign(sigPtr, sigLenPtr, skPtr, msgPtr, msgBytes.length);
-  if (signResult !== 0) {
-    throw new Error("Signing failed");
-  }
-  
-  const sigLen = Module.getValue(sigLenPtr, "i32");
-  const sig = new Uint8Array(Module.HEAPU8.buffer, sigPtr, sigLen).slice();
-  const sigHex = Array.from(sig).map(b => b.toString(16).padStart(2, "0")).join("");
-  
-  console.log("Signature:", sigHex);
+  const signature = await falcon.sign(message, secretKey);
+  console.log(`Signature length: ${signature.length} bytes`);
   
   // Verify the signature
-  const verifyResult = Module._simple_verify(sigPtr, sigLen, pkPtr, msgPtr, msgBytes.length);
-  console.log("Verification result:", verifyResult === 0 ? "Success" : "Failed");
+  const isValid = await falcon.verify(message, signature, publicKey);
+  console.log(`Verification result: ${isValid ? 'Valid ✓' : 'Invalid ✗'}`);
   
-  // Free allocated memory
-  Module._free(pkPtr);
-  Module._free(skPtr);
-  Module._free(msgPtr);
-  Module._free(sigPtr);
-  Module._free(sigLenPtr);
+  // You can also use hex strings for keys and signatures
+  const isValidHex = await falcon.verify(message, Falcon.bytesToHex(signature), pkHex);
+  console.log(`Verification with hex inputs: ${isValidHex ? 'Valid ✓' : 'Invalid ✗'}`);
 }
 
 example().catch(console.error);
 ```
 
-### Browser Usage
-
-Include the WebAssembly module in your HTML:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Falcon Demo</title>
-</head>
-<body>
-  <h1>Falcon Post-Quantum Signatures</h1>
-  
-  <div>
-    <button id="generate">Generate Keypair</button>
-    <button id="sign">Sign Message</button>
-    <button id="verify">Verify Signature</button>
-  </div>
-  
-  <div>
-    <h2>Results:</h2>
-    <pre id="output"></pre>
-  </div>
-  
-  <script type="module">
-    import ModuleFactory from './falcon.js'; // If falcon.js is in the root directory
-    // OR
-    // import ModuleFactory from './falcon/falcon.js'; // If using the original file from the submodule
-    
-    let Module;
-    let publicKey, secretKey, signature;
-    const output = document.getElementById('output');
-    
-    // Helper functions
-    function hexToBytes(hex) {
-      return new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-    }
-    
-    function bytesToHex(bytes) {
-      return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
-    }
-    
-    // Initialize the module
-    async function init() {
-      Module = await ModuleFactory();
-      output.textContent = "Module loaded successfully!";
-    }
-    
-    // Generate a keypair
-    document.getElementById('generate').addEventListener('click', () => {
-      if (!Module) return;
-      
-      const PK_LEN = Module._get_pk_size();
-      const SK_LEN = Module._get_sk_size();
-      
-      const pkPtr = Module._malloc(PK_LEN);
-      const skPtr = Module._malloc(SK_LEN);
-      
-      const result = Module._simple_keygen(skPtr, pkPtr);
-      if (result !== 0) {
-        output.textContent = "Keygen failed!";
-        return;
-      }
-      
-      const pk = new Uint8Array(Module.HEAPU8.buffer, pkPtr, PK_LEN);
-      const sk = new Uint8Array(Module.HEAPU8.buffer, skPtr, SK_LEN);
-      
-      publicKey = new Uint8Array(pk);
-      secretKey = new Uint8Array(sk);
-      
-      output.textContent = `Keypair generated!\n\nPublic Key: ${bytesToHex(publicKey).substring(0, 64)}...\nSecret Key: ${bytesToHex(secretKey).substring(0, 64)}...`;
-      
-      Module._free(pkPtr);
-      Module._free(skPtr);
-    });
-    
-    // Sign a message
-    document.getElementById('sign').addEventListener('click', () => {
-      if (!Module || !secretKey) return;
-      
-      const message = prompt("Enter a message to sign:", "Hello, Falcon!");
-      if (!message) return;
-      
-      const msgBytes = new TextEncoder().encode(message);
-      const SIG_MAX = Module._get_sig_max_size();
-      
-      const msgPtr = Module._malloc(msgBytes.length);
-      const skPtr = Module._malloc(secretKey.length);
-      const sigPtr = Module._malloc(SIG_MAX);
-      const sigLenPtr = Module._malloc(4);
-      
-      Module.HEAPU8.set(msgBytes, msgPtr);
-      Module.HEAPU8.set(secretKey, skPtr);
-      Module.setValue(sigLenPtr, SIG_MAX, "i32");
-      
-      const result = Module._simple_sign(sigPtr, sigLenPtr, skPtr, msgPtr, msgBytes.length);
-      if (result !== 0) {
-        output.textContent = "Signing failed!";
-        return;
-      }
-      
-      const sigLen = Module.getValue(sigLenPtr, "i32");
-      signature = new Uint8Array(Module.HEAPU8.buffer, sigPtr, sigLen).slice();
-      
-      output.textContent = `Message signed!\n\nMessage: "${message}"\nSignature: ${bytesToHex(signature).substring(0, 64)}...`;
-      
-      Module._free(msgPtr);
-      Module._free(skPtr);
-      Module._free(sigPtr);
-      Module._free(sigLenPtr);
-    });
-    
-    // Verify a signature
-    document.getElementById('verify').addEventListener('click', () => {
-      if (!Module || !publicKey || !signature) return;
-      
-      const message = prompt("Enter the message to verify:", "Hello, Falcon!");
-      if (!message) return;
-      
-      const msgBytes = new TextEncoder().encode(message);
-      
-      const msgPtr = Module._malloc(msgBytes.length);
-      const pkPtr = Module._malloc(publicKey.length);
-      const sigPtr = Module._malloc(signature.length);
-      
-      Module.HEAPU8.set(msgBytes, msgPtr);
-      Module.HEAPU8.set(publicKey, pkPtr);
-      Module.HEAPU8.set(signature, sigPtr);
-      
-      const result = Module._simple_verify(sigPtr, signature.length, pkPtr, msgPtr, msgBytes.length);
-      
-      output.textContent = `Verification ${result === 0 ? "successful!" : "failed!"}\n\nMessage: "${message}"`;
-      
-      Module._free(msgPtr);
-      Module._free(pkPtr);
-      Module._free(sigPtr);
-    });
-    
-    // Initialize the module when the page loads
-    init().catch(console.error);
-  </script>
-</body>
-</html>
-```
-
 ## Building from Source
 
-To build the WebAssembly module from source, you need to have Emscripten installed. Follow these steps:
+If you're building the library from source (rather than installing via npm), you'll need to have Emscripten installed:
 
 1. Install Emscripten by following the instructions at [emscripten.org](https://emscripten.org/docs/getting_started/downloads.html)
 
-2. Set up the Emscripten environment:
+2. Clone the repository and initialize submodules:
+```bash
+git clone https://github.com/GoPlausible/falcon-signatures-js.git
+cd falcon-signatures-js
+git submodule init
+git submodule update
+```
+
+3. Set up the Emscripten environment:
 ```bash
 source /path/to/emsdk/emsdk_env.sh
 ```
 
-3. Build the WebAssembly module:
+4. Build the WebAssembly module:
 ```bash
 emcc -O3 -s MODULARIZE=1 -s EXPORT_ES6=1 -s ENVIRONMENT=web,worker,node \
   -s EXPORTED_FUNCTIONS='["_malloc","_free","_simple_keygen","_simple_sign","_simple_verify","_get_sk_size","_get_pk_size","_get_sig_max_size"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAPU8"]' \
-  falcon/common.c falcon/codec.c falcon/deterministic.c falcon/falcon.c falcon/fft.c falcon/fpr.c falcon/keygen.c falcon/rng.c falcon/shake.c falcon/sign.c falcon/vrfy.c falcon/falcon_wrapper.c \
-  -o falcon.js
+  falcon/common.c falcon/codec.c falcon/deterministic.c falcon/falcon.c \
+  falcon/fft.c falcon/fpr.c falcon/keygen.c falcon/rng.c falcon/shake.c \
+  falcon/sign.c falcon/vrfy.c falcon_wrapper.c -o falcon.js
 ```
 
 This will generate two files:
@@ -364,10 +204,11 @@ To run the tests:
 
 ```bash
 node falcon-cli-test.js
+node falcon-test.js
 ```
 
-This will:
-1. Generate a keypair
+These will:
+1. Generate a keypair (and check for randomness to work properly using a second keypair generation)
 2. Sign a test message
 3. Verify the signature
 4. Test file-based operations
@@ -384,6 +225,12 @@ This will:
 - `_simple_verify(sigPtr, sigLen, pkPtr, msgPtr, msgLen)`: Verifies a signature
 
 ### CLI Commands
+
+- `keygen`: Generates a new keypair
+- `sign <message> <hex_sk>`: Signs a message using a secret key
+- `verify <message> <hex_sig> <hex_pk>`: Verifies a signature
+
+### NPM Library methods
 
 - `keygen`: Generates a new keypair
 - `sign <message> <hex_sk>`: Signs a message using a secret key
@@ -423,7 +270,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Results example
 ```bash
-mg@MGs-MacBook-Pro falcon % node falcon-cli-test.js
+mg@GoPlausible falcon % node falcon-cli-test.js
 === Falcon CLI Test ===
 
 === Step 1: Generating a new Falcon keypair ===

@@ -2,16 +2,7 @@
 import fs from "fs";
 import path from "path";
 import process from "process";
-import ModuleFactory from "./falcon.js";
-
-const Module = await ModuleFactory();
-
-function hexToBytes(hex) {
-  return new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-}
-function bytesToHex(bytes) {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
-}
+import Falcon from "./index.js";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -23,145 +14,104 @@ async function main() {
     process.exit(1);
   }
 
-  // Falcon-1024 key and signature sizes
-  const PK_LEN = 1793;  // Public key: 1,793 bytes
-  const SK_LEN = 2305;  // Private key: 2,305 bytes
-  const SIG_MAX = 1538; // Signature: 1,538 bytes (uncompressed)
+  // Initialize Falcon
+  const falcon = new Falcon();
   
-  // Verify sizes match what the module reports
-  const modulePkLen = Module._get_pk_size();
-  const moduleSkLen = Module._get_sk_size();
-  const moduleSigMax = Module._get_sig_max_size();
-  
-  console.log(`Using key sizes: PK=${PK_LEN} bytes, SK=${SK_LEN} bytes, SIG=${SIG_MAX} bytes`);
-  console.log(`Module reports: PK=${modulePkLen} bytes, SK=${moduleSkLen} bytes, SIG=${moduleSigMax} bytes`);
-  
-  if (PK_LEN !== modulePkLen || SK_LEN !== moduleSkLen) {
-    console.warn("Warning: Key sizes don't match module-reported sizes!");
-  }
-
   const cmd = args[0];
   if (cmd === "keygen") {
     console.log("🔑 Generating Falcon keypair...");
-    const pkPtr = Module._malloc(PK_LEN);
-    const skPtr = Module._malloc(SK_LEN);
-
-    const res = Module._simple_keygen(skPtr, pkPtr);
-    if (res !== 0) throw new Error("Keygen failed: " + res);
-
-    const pk = new Uint8Array(Module.HEAPU8.buffer, pkPtr, PK_LEN);
-    const sk = new Uint8Array(Module.HEAPU8.buffer, skPtr, SK_LEN);
-
-    console.log("PublicKey:", bytesToHex(pk));
-    console.log("SecretKey:", bytesToHex(sk));
-
-    Module._free(pkPtr);
-    Module._free(skPtr);
+    
+    // Generate keypair
+    const { publicKey, secretKey } = await falcon.keypair();
+    
+    // Convert to hex for display
+    const pkHex = Falcon.bytesToHex(publicKey);
+    const skHex = Falcon.bytesToHex(secretKey);
+    
+    // Display shortened versions for better readability
+    const shortenHex = (hex) => {
+      if (hex.length <= 40) return hex;
+      return hex.substring(0, 20) + '...' + hex.substring(hex.length - 20);
+    };
+    
+    console.log("PublicKey:", shortenHex(pkHex));
+    console.log("SecretKey:", shortenHex(skHex));
+    
+    // Store full hex values in files for reference
+    fs.writeFileSync("falcon_pk_hex.txt", pkHex);
+    fs.writeFileSync("falcon_sk_hex.txt", skHex);
+    
+    // Write keys to binary files (optional)
+    fs.writeFileSync("falcon_pk.bin", publicKey);
+    fs.writeFileSync("falcon_sk.bin", secretKey);
+    
+    console.log("Keygen completed successfully");
+    console.log(`Public key length: ${publicKey.length} bytes`);
+    console.log(`Secret key length: ${secretKey.length} bytes`);
+    console.log("Keys saved to falcon_pk.bin and falcon_sk.bin");
+    
   } else if (cmd === "sign") {
-    const msg = new TextEncoder().encode(args[1]);
-    const sk = hexToBytes(args[2]);
-
-    // Verify the secret key length
-    if (sk.length !== SK_LEN) {
-      console.error(`Invalid secret key length: ${sk.length}, expected ${SK_LEN}`);
+    if (args.length < 3) {
+      console.error("Error: Missing arguments for sign command");
+      console.log("Usage: node falcon-cli.js sign <message> <hex_sk>");
       process.exit(1);
     }
-
-    // Allocate memory for message and secret key
-    const msgPtr = Module._malloc(msg.length);
-    const skPtr = Module._malloc(SK_LEN);
     
-    // Copy message and secret key to WebAssembly memory
-    Module.HEAPU8.set(msg, msgPtr);
-    Module.HEAPU8.set(sk, skPtr);
-
-    // Allocate memory for signature and signature length
-    // Use a larger buffer for the signature to be safe
-    const sigPtr = Module._malloc(SIG_MAX);
-    const sigLenPtr = Module._malloc(4);
+    const message = args[1];
+    const secretKey = args[2]; // Already in hex format
     
-    // Initialize the signature length pointer with the buffer size
-    Module.setValue(sigLenPtr, SIG_MAX, "i32");
-
     try {
-      // The C function signature is:
-      // int simple_sign(uint8_t *sig, size_t *sig_len, const uint8_t *sk, const uint8_t *msg, size_t msg_len)
-      // Make sure we pass the parameters in the correct order
-      console.log("Calling sign with parameters:");
-      console.log(`- sigPtr: ${sigPtr}`);
-      console.log(`- sigLenPtr: ${sigLenPtr}`);
-      console.log(`- skPtr: ${skPtr}`);
-      console.log(`- msgPtr: ${msgPtr}`);
-      console.log(`- msg.length: ${msg.length}`);
+      // Sign the message
+      const signature = await falcon.sign(message, secretKey);
       
-      // Pass parameters in the exact order defined in the C function
-      const res = Module._simple_sign(sigPtr, sigLenPtr, skPtr, msgPtr, msg.length);
+      // Convert to hex for display
+      const sigHex = Falcon.bytesToHex(signature);
       
-      if (res !== 0) {
-        console.error(`Sign failed with error code: ${res}`);
-        process.exit(1);
-      }
+      // Display shortened version for better readability
+      const shortenHex = (hex) => {
+        if (hex.length <= 40) return hex;
+        return hex.substring(0, 20) + '...' + hex.substring(hex.length - 20);
+      };
       
-      // Get signature length and copy signature from WebAssembly memory
-      const sigLen = Module.getValue(sigLenPtr, "i32");
+      console.log("Signature:", shortenHex(sigHex));
       
-      // Create a copy of the signature to avoid issues with memory being freed
-      const sig = new Uint8Array(Module.HEAPU8.buffer, sigPtr, sigLen).slice();
-      console.log("Signature:", bytesToHex(sig));
-    } catch (e) {
-      console.error("Error during signing:", e);
+      // Store full hex value in file for reference
+      fs.writeFileSync("falcon_sig_hex.txt", sigHex);
+      
+      // Write signature to binary file (optional)
+      fs.writeFileSync("falcon_sig.bin", signature);
+      
+      console.log("Signing completed successfully");
+      console.log(`Signature length: ${signature.length} bytes`);
+      console.log("Signature saved to falcon_sig.bin");
+      
+    } catch (error) {
+      console.error("Error during signing:", error.message);
       process.exit(1);
-    } finally {
-      // Free allocated memory
-      Module._free(msgPtr);
-      Module._free(skPtr);
-      Module._free(sigPtr);
-      Module._free(sigLenPtr);
     }
+    
   } else if (cmd === "verify") {
-    const msg = new TextEncoder().encode(args[1]);
-    const sig = hexToBytes(args[2]);
-    const pk = hexToBytes(args[3]);
-
-    // Verify the public key and signature lengths
-    if (pk.length !== PK_LEN) {
-      console.error(`Invalid public key length: ${pk.length}, expected ${PK_LEN}`);
+    if (args.length < 4) {
+      console.error("Error: Missing arguments for verify command");
+      console.log("Usage: node falcon-cli.js verify <message> <hex_sig> <hex_pk>");
       process.exit(1);
     }
-
-    // Allocate memory for message, signature, and public key
-    const msgPtr = Module._malloc(msg.length);
-    const sigPtr = Module._malloc(sig.length);
-    const pkPtr = Module._malloc(PK_LEN);
     
-    // Copy message, signature, and public key to WebAssembly memory
-    Module.HEAPU8.set(msg, msgPtr);
-    Module.HEAPU8.set(sig, sigPtr);
-    Module.HEAPU8.set(pk, pkPtr);
-
+    const message = args[1];
+    const signature = args[2]; // Already in hex format
+    const publicKey = args[3]; // Already in hex format
+    
     try {
-      // The C function signature is:
-      // int simple_verify(const uint8_t *sig, size_t sig_len, const uint8_t *pk, const uint8_t *msg, size_t msg_len)
-      // Make sure we pass the parameters in the correct order
-      console.log("Calling verify with parameters:");
-      console.log(`- sigPtr: ${sigPtr}`);
-      console.log(`- sig.length: ${sig.length}`);
-      console.log(`- pkPtr: ${pkPtr}`);
-      console.log(`- msgPtr: ${msgPtr}`);
-      console.log(`- msg.length: ${msg.length}`);
+      // Verify the signature
+      const result = await falcon.verify(message, signature, publicKey);
       
-      // Pass parameters in the exact order defined in the C function
-      const res = Module._simple_verify(sigPtr, sig.length, pkPtr, msgPtr, msg.length);
-      console.log(res === 0 ? "✅ Verification success" : "❌ Verification failed");
-    } catch (e) {
-      console.error("Error during verification:", e);
+      console.log(result ? "✅ Verification success" : "❌ Verification failed");
+      
+    } catch (error) {
+      console.error("Error during verification:", error.message);
       process.exit(1);
-    } finally {
-      // Free allocated memory
-      Module._free(msgPtr);
-      Module._free(sigPtr);
-      Module._free(pkPtr);
     }
+    
   } else {
     console.error("Unknown command:", cmd);
   }

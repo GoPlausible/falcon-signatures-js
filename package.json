@@ -1,6 +1,6 @@
 {
   "name": "falcon-signatures",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "JavaScript library for Falcon post-quantum cryptography signatures",
   "main": "index.js",
   "type": "module",

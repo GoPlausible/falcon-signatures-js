@@ -8,3 +8,4 @@ falcon_pk_hex.txt
 .gitignore
 falcon_sig_hex.txt
 falcon_sk_hex.txt
+package-lock.json

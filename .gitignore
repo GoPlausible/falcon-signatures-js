@@ -9,3 +9,4 @@ falcon_pk_hex.txt
 falcon_sig_hex.txt
 falcon_sk_hex.txt
 package-lock.json
+falcon-test-npm/node_modules/.package-lock.json

@@ -2,6 +2,12 @@
 import Falcon from './index.js';
 import { strict as assert } from 'assert';
 
+// Constants for deterministic Falcon-1024
+const EXPECTED_PK_SIZE = 1793;  // Size of public key in bytes
+const EXPECTED_SK_SIZE = 2305;  // Size of secret key in bytes
+// The compressed signature size can vary, but has a maximum
+// The CT signature size is fixed
+
 /**
  * Test the Falcon class implementation
  */
@@ -47,20 +53,39 @@ async function runTests() {
   assert(pkHex !== pk2Hex, 'Different key pairs should produce different public keys');
   
   // Test signing
-  console.log('- Testing signing...');
+  console.log('- Testing signing with deterministic compressed format...');
   const message = 'This is a test message for Falcon signatures';
   console.log(`  Message: "${message}"`);
   
   const signature = await falcon.sign(message, secretKey);
   const sigHex = Falcon.bytesToHex(signature);
-  console.log(`  ✓ Generated signature (${signature.length} bytes)`);
+  console.log(`  ✓ Generated compressed signature (${signature.length} bytes)`);
   console.log(`  Signature: ${shortenHex(sigHex)}`);
   
+  // Get salt version of the signature
+  console.log('- Testing salt version retrieval...');
+  const saltVersion = await falcon.getSaltVersion(signature);
+  console.log(`  ✓ Salt version: ${saltVersion}`);
+  assert(saltVersion >= 0, 'Salt version should be a non-negative integer');
+  
   // Test signature verification
-  console.log('- Testing verification...');
+  console.log('- Testing verification of compressed signature...');
   const isValid = await falcon.verify(message, signature, publicKey);
   console.log(`  ✓ Verification result: ${isValid ? 'Valid' : 'Invalid'}`);
   assert(isValid === true, 'Signature should be valid');
+  
+  // Convert to constant-time signature
+  console.log('- Testing conversion to constant-time format...');
+  const ctSignature = await falcon.convertToConstantTime(signature);
+  const ctSigHex = Falcon.bytesToHex(ctSignature);
+  console.log(`  ✓ Generated CT signature (${ctSignature.length} bytes)`);
+  console.log(`  CT Signature: ${shortenHex(ctSigHex)}`);
+  
+  // Test CT signature verification
+  console.log('- Testing verification of CT signature...');
+  const ctIsValid = await falcon.verifyConstantTime(message, ctSignature, publicKey);
+  console.log(`  ✓ CT Verification result: ${ctIsValid ? 'Valid' : 'Invalid'}`);
+  assert(ctIsValid === true, 'CT Signature should be valid');
   
   // Test invalid verification
   console.log('- Testing invalid verification...');
@@ -68,6 +93,10 @@ async function runTests() {
   const invalidResult = await falcon.verify(tampered, signature, publicKey);
   console.log(`  ✓ Invalid verification result: ${invalidResult ? 'Valid' : 'Invalid'}`);
   assert(invalidResult === false, 'Tampered signature should be invalid');
+  
+  const ctInvalidResult = await falcon.verifyConstantTime(tampered, ctSignature, publicKey);
+  console.log(`  ✓ Invalid CT verification result: ${ctInvalidResult ? 'Valid' : 'Invalid'}`);
+  assert(ctInvalidResult === false, 'Tampered CT signature should be invalid');
   
   // Test hex conversion utilities
   console.log('- Testing hex conversion utilities...');
@@ -85,6 +114,22 @@ async function runTests() {
   const binVerify = await falcon.verify(binaryMessage, binSig, publicKey);
   assert(binVerify === true, 'Binary message signature should be valid');
   console.log('  ✓ Binary message signing and verification works');
+  
+  // Test binary message with CT signature
+  const binCtSig = await falcon.convertToConstantTime(binSig);
+  const binCtVerify = await falcon.verifyConstantTime(binaryMessage, binCtSig, publicKey);
+  assert(binCtVerify === true, 'Binary message CT signature should be valid');
+  console.log('  ✓ Binary message CT signature verification works');
+  
+  // Test deterministic property of signatures
+  console.log('- Testing deterministic property of signatures...');
+  const sig1 = await falcon.sign(message, secretKey);
+  const sig2 = await falcon.sign(message, secretKey);
+  // Compare the signatures - should be identical for the same message and key
+  const sig1Hex = Falcon.bytesToHex(sig1);
+  const sig2Hex = Falcon.bytesToHex(sig2);
+  assert(sig1Hex === sig2Hex, 'Signatures should be deterministic for the same message and key');
+  console.log('  ✓ Deterministic signatures confirmed');
   
   console.log('\n✅ All tests passed!');
 }

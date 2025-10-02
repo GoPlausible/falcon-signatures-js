@@ -12,7 +12,12 @@ This project from [GoPlausible](https://goplausible.com) aims to fill that gap. 
 
 Includes A JavaScript CLI and library for the Falcon post-quantum cryptography signature algorithm, compiled to WebAssembly for use in both Node.js and browser environments.
 
-[Algorand Falcon GitHub Repository](https://github.com/algorand/falcon)
+The original library in C and GO is great work of:
+
+<lazard@csail.mit.edu>, David Lazar
+<chris.peikert@algorand.com>  Chris Peikert from Algorand, Inc.
+
+[Falcon GitHub Repository](https://github.com/algorand/falcon)
 
 
 This contribution is inspired by  [ amazing work of](https://github.com/algorandfoundation/falcon-signatures) [Giulio Pizzini](https://x.com/giuliopizzini) in Go language by the Algorand Foundation. Many thanks to Giulio for his great work and support!
@@ -45,6 +50,13 @@ Many thanks to my good friend [Nullun](https://x.com/nullun)
 ## Introduction
 
 Falcon (Fast-Fourier Lattice-based Compact Signatures over NTRU) is a post-quantum cryptographic signature algorithm submitted to NIST's Post-Quantum Cryptography project. It is designed to be resistant against attacks from quantum computers while maintaining efficiency and compact signatures.
+
+The original library in C and GO is great work of:
+
+<lazard@csail.mit.edu>, David Lazar
+<chris.peikert@algorand.com>  Chris Peikert from Algorand, Inc.
+
+[Falcon GitHub Repository](https://github.com/algorand/falcon)
 
 This project provides a JavaScript CLI and library for the deterministic variant of Falcon, compiled from the C implementation to WebAssembly using Emscripten. It supports key generation, signing, and verification operations in both Node.js and browser environments.
 

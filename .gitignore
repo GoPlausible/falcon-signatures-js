@@ -20,3 +20,4 @@ falcon_sig_compressed.bin
 .gitignore
 falcon_sig_ct_hex.txt
 falcon_sig_ct.bin
+.env

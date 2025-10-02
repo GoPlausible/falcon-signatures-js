@@ -8,7 +8,7 @@ Try it live here: [Falcon Signatures](https://falcon-signatures-js.pages.dev/)
 
 The Algorand Falcon repository does only provide the C and GO implementations; therefore, a majority of developers were not able to use Falcon keys and signatures in their JavaScript or TypeScript applications. 
 
-This project from [GoPlausible](https://goplausible.com) aims to fill that gap. We initially use that to make all of our agentic toolins and platforms post-quantum secure.
+This project from [GoPlausible](https://goplausible.com) aims to fill that gap. We initially use that to make all of our agentic toolins and platforms post-quantum resistant.
 
 Includes A JavaScript CLI and library for the Falcon post-quantum cryptography signature algorithm, compiled to WebAssembly for use in both Node.js and browser environments.
 
@@ -44,7 +44,7 @@ Many thanks to my good friend [Nullun](https://x.com/nullun)
 
 ## Introduction
 
-Falcon (Fast-Fourier Lattice-based Compact Signatures over NTRU) is a post-quantum cryptographic signature algorithm submitted to NIST's Post-Quantum Cryptography project. It is designed to be secure against attacks from quantum computers while maintaining efficiency and compact signatures.
+Falcon (Fast-Fourier Lattice-based Compact Signatures over NTRU) is a post-quantum cryptographic signature algorithm submitted to NIST's Post-Quantum Cryptography project. It is designed to be resistant against attacks from quantum computers while maintaining efficiency and compact signatures.
 
 This project provides a JavaScript CLI and library for the deterministic variant of Falcon, compiled from the C implementation to WebAssembly using Emscripten. It supports key generation, signing, and verification operations in both Node.js and browser environments.
 

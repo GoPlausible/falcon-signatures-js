@@ -318,6 +318,33 @@ This implementation now depends on both the **Falcon C reference** and **libsodi
 - Falcon logic remains deterministic and PQC-correct.
 - libsodium provides secure entropy and constant-time memory ops.
 - Deterministic SHAKE256 internal PRNG ensures repeatable key derivation.
+- libsodium’s ChaCha20-based CSPRNG seeds the Falcon PRNG with high-entropy randomness.
+
+### Libsodium’s ChaCha20-based RNG
+
+🔬 How it works
+
+- Built around a ChaCha20 stream cipher in counter mode.
+
+- Initially seeded from the system CSPRNG (/dev/urandom, getrandom(), or platform equivalents).
+
+- Then it runs in user space with periodic reseeding and internal re-keying.
+
+- Each process and thread gets an independent DRBG instance.
+
+- In Emscripten builds, it automatically maps to WebCrypto’s crypto.getRandomValues().
+
+✅ Strengths
+
+- ChaCha20 is one of the most extensively reviewed modern ciphers (RFC 8439, used in TLS 1.3, WireGuard, OpenSSH).
+
+- Deterministic and portable — runs identically across Linux, macOS, Windows, WASM, Node.js.
+
+- High performance: zero syscalls after seeding; constant-time, branch-free.
+
+- Entropy refresh: automatic reseed after ~1 MB of output or ~10 minutes.
+
+- Built-in safety mechanisms: crash-safe state, constant-time zeroization, entropy whitening.
 
 ## License
 

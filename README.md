@@ -37,13 +37,10 @@ Many thanks to my good friend [Nullun](https://x.com/nullun)
   - [Command Line Interface](#command-line-interface)
   - [Node.js and Browser](#nodejs-and-browser)
 - [Building from Source](#building-from-source)
+- [Post-Quantum Resistance & Entropy Improvements (v2.0)](#post-quantum-resistance--entropy-improvements-v20)
 - [Testing](#testing)
 - [API Reference](#api-reference)
-  - [WebAssembly Module Functions](#webassembly-module-functions)
-  - [CLI Commands](#cli-commands)
-  - [NPM Library methods](#npm-library-methods)
 - [Implementation Details](#implementation-details)
-  - [Project Structure](#project-structure)
 - [License](#license)
 - [Results example](#results-example)
 
@@ -51,39 +48,39 @@ Many thanks to my good friend [Nullun](https://x.com/nullun)
 
 Falcon (Fast-Fourier Lattice-based Compact Signatures over NTRU) is a post-quantum cryptographic signature algorithm submitted to NIST's Post-Quantum Cryptography project. It is designed to be resistant against attacks from quantum computers while maintaining efficiency and compact signatures.
 
-The original library in C and GO is great work of:
-
-<lazard@csail.mit.edu>, David Lazar
-<chris.peikert@algorand.com>  Chris Peikert from Algorand, Inc.
-
-[Falcon GitHub Repository](https://github.com/algorand/falcon)
-
 This project provides a JavaScript CLI and library for the deterministic variant of Falcon, compiled from the C implementation to WebAssembly using Emscripten. It supports key generation, signing, and verification operations in both Node.js and browser environments.
 
 The implementation uses the deterministic variant of Falcon, which provides reproducible signatures for the same message and key pair. This is particularly important for applications where signature reproducibility is required.
 
+---
+
 ## Features
 
-- **Post-Quantum Security**: Implements the deterministic Falcon-1024 signature scheme, resistant to quantum computer attacks
-- **Deterministic Signatures**: Produces reproducible signatures for the same message and key pair
+- **Post-Quantum Resistance**: Implements the deterministic Falcon-1024 signature scheme, resistant to quantum computer attacks  
+- **Deterministic Signatures**: Produces reproducible signatures for the same message and key pair  
 - **Dual Signature Formats**:
   - **Compressed Format**: Variable length, smaller size (~1,230 bytes)
   - **Constant-Time Format**: Fixed length, better timing attack resistance (1,538 bytes)
-- **Format Conversion**: Easily convert between compressed and constant-time formats
-- **Salt Version Support**: Retrieve the salt version from signatures
-- **Cross-Platform**: Works in Node.js and modern browsers via WebAssembly
-- **Simple API**: Easy-to-use functions for all cryptographic operations
-- **Command Line Interface**: Convenient CLI with automatic signature format detection
+- **Format Conversion**: Easily convert between compressed and constant-time formats  
+- **Salt Version Support**: Retrieve the salt version from signatures  
+- **Cross-Platform**: Works in Node.js and modern browsers via WebAssembly  
+- **Simple API**: Easy-to-use functions for all cryptographic operations  
+- **Command Line Interface**: Convenient CLI with automatic signature format detection  
+- **Now uses libsodium’s ChaCha20-based CSPRNG** for high-entropy seed generation  
+- **Secure Memory Handling**: Sensitive data is wiped after use with `sodium_memzero()`  
+- **Mnemonic-ready architecture** for future human-readable key recovery  
+
+---
 
 ## Installation
 
 ### NPM Package
 
-You can install the package via npm:
-
 ```bash
 npm install falcon-signatures
 ```
+
+---
 
 ## Usage
 
@@ -197,26 +194,36 @@ example().catch(console.error);
 
 ## Building from Source
 
-If you're building the library from source (rather than installing via npm), you'll need to have Emscripten installed:
+If you're building the library from source:
 
-1. Install Emscripten by following the instructions at [emscripten.org](https://emscripten.org/docs/getting_started/downloads.html)
+1. **Ensure Emscripten is installed**
+   ```bash
+   source /path/to/emsdk/emsdk_env.sh
+   ```
 
-2. Clone the repository and initialize submodules:
-```bash
-git clone https://github.com/GoPlausible/falcon-signatures-js.git
-cd falcon-signatures-js
-git submodule init
-git submodule update
-```
+2. **Clone and initialize the repository**
+   ```bash
+   git clone https://github.com/GoPlausible/falcon-signatures-js.git
+   cd falcon-signatures-js
+   git submodule update --init --recursive
+   ```
 
-3. Set up the Emscripten environment:
-```bash
-source /path/to/emsdk/emsdk_env.sh
-```
+3. **Build libsodium (secure RNG)**
+   ```bash
+   chmod +x build_libsodium_wasm.sh
+   ./build_libsodium_wasm.sh
+   ```
+
+   This compiles a WASM-safe static `libsodium.a` under:
+   ```
+   external/libsodium/dist/
+   ```
 
 4. Build the WebAssembly module:
 ```bash
 emcc -O3 -s MODULARIZE=1 -s EXPORT_ES6=1 -s ENVIRONMENT=web,worker,node \
+  -Iexternal/libsodium/dist/include \
+  -Lexternal/libsodium/dist/lib -lsodium \
   -s EXPORTED_FUNCTIONS='["_malloc","_free","_falcon_det1024_keygen_wrapper","_falcon_det1024_sign_compressed_wrapper","_falcon_det1024_convert_compressed_to_ct_wrapper","_falcon_det1024_verify_compressed_wrapper","_falcon_det1024_verify_ct_wrapper","_falcon_det1024_get_salt_version_wrapper","_get_sk_size","_get_pk_size","_get_sig_compressed_max_size","_get_sig_ct_size"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAPU8"]' \
   falcon/common.c falcon/codec.c falcon/deterministic.c falcon/falcon.c falcon/fft.c falcon/fpr.c falcon/keygen.c falcon/rng.c falcon/shake.c falcon/sign.c falcon/vrfy.c falcon_wrapper.c \
@@ -304,6 +311,13 @@ The project is structured as follows:
 - `falcon.html`: Browser demo
 - `falcon.js`: JavaScript wrapper for the WebAssembly module (generated)
 - `falcon.wasm`: WebAssembly binary (generated)
+
+## Implementation Details
+
+This implementation now depends on both the **Falcon C reference** and **libsodium**:
+- Falcon logic remains deterministic and PQC-correct.
+- libsodium provides secure entropy and constant-time memory ops.
+- Deterministic SHAKE256 internal PRNG ensures repeatable key derivation.
 
 ## License
 

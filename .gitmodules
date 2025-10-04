@@ -1,3 +1,6 @@
 [submodule "falcon"]
 	path = falcon
 	url = https://github.com/algorand/falcon.git
+[submodule "external/libsodium"]
+	path = external/libsodium
+	url = https://github.com/jedisct1/libsodium.git

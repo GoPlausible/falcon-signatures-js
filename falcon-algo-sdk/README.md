@@ -445,6 +445,28 @@ Run the basic example:
 npm run example
 ```
 
+### CLI
+
+Install globally (or use `npx`):
+
+```bash
+npm install -g falcon-algo-sdk
+```
+
+Usage:
+
+```bash
+# Create a new Falcon-protected account (saves JSON to cwd)
+falcon-algo create --network testnet
+
+# Convert an existing mnemonic-based account (prompts if omitted)
+falcon-algo convert --network testnet --mnemonic "word list ..."
+```
+
+Networks: `mainnet`, `testnet` (default), `betanet`.
+
+The CLI saves generated or converted account details as JSON in the current directory (BigInt-safe), including addresses, Falcon keys, and rekey transaction info.
+
 ## 🏗️ How It Works
 
 The Falcon-Algorand SDK uses Algorand's LogicSig (Logic Signature) functionality to embed Falcon post-quantum signatures into the blockchain:

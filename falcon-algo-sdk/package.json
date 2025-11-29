@@ -4,8 +4,12 @@
   "description": "SDK for post-quantum secure Algorand accounts using Falcon signatures",
   "main": "index.js",
   "type": "module",
+  "bin": {
+    "falcon-algo": "./cli.js"
+  },
   "files": [
     "index.js",
+    "cli.js",
     "lib/",
     "README.md",
     "LICENSE"

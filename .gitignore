@@ -23,3 +23,5 @@ falcon_sig_ct.bin
 .env
 external/libsodium/dist
 external/libsodium/dist/*
+**falcon-protected**
+**standard-account**

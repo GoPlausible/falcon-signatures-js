@@ -1,0 +1,45 @@
+{
+  "name": "falcon-algo-sdk",
+  "version": "1.0.0",
+  "description": "SDK for post-quantum secure Algorand accounts using Falcon signatures",
+  "main": "index.js",
+  "type": "module",
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/test.js",
+    "test:integration": "node test/integration-test.js",
+    "example": "node examples/example.js"
+  },
+  "dependencies": {
+    "algosdk": "^3.5.2",
+    "falcon-signatures": "1.4.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "keywords": [
+    "algorand",
+    "falcon",
+    "post-quantum",
+    "cryptography",
+    "blockchain",
+    "signatures",
+    "pqc"
+  ],
+  "author": "GoPlausible",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoPlausible/falcon-signatures-js.git",
+    "directory": "falcon-algo-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/GoPlausible/falcon-signatures-js/issues"
+  },
+  "homepage": "https://github.com/GoPlausible/falcon-signatures-js/tree/main/falcon-algo-sdk#readme"
+}

@@ -36,6 +36,7 @@ Many thanks to my good friend [Nullun](https://x.com/nullun)
 - [Usage](#usage)
   - [Command Line Interface](#command-line-interface)
   - [Node.js and Browser](#nodejs-and-browser)
+- [Falcon-Algorand SDK](#falcon-algorand-sdk)
 - [Building from Source](#building-from-source)
 - [Post-Quantum Resistance & Entropy Improvements (v2.0)](#post-quantum-resistance--entropy-improvements-v20)
 - [Testing](#testing)
@@ -191,6 +192,78 @@ async function example() {
 
 example().catch(console.error);
 ```
+
+## Falcon-Algorand SDK
+
+For developers looking to integrate Falcon post-quantum signatures with Algorand blockchain accounts, we provide a comprehensive SDK that builds on this Falcon library.
+
+### Features
+
+The **Falcon-Algorand SDK** (`falcon-algo-sdk/`) provides:
+
+- **🔐 Account Creation**: Generate new Falcon-protected Algorand accounts
+- **🔄 Account Conversion**: Convert existing accounts to Falcon-protected via rekeying  
+- **📝 Transaction Signing**: Sign transactions with Falcon post-quantum signatures
+- **📦 Transaction Groups**: Support for atomic transaction groups with pool optimization
+- **🌐 Multi-Network**: MainNet, TestNet, and BetaNet support
+- **💾 Account Management**: Backup, restore, and key rotation capabilities
+
+### Installation
+
+```bash
+cd falcon-algo-sdk
+npm install
+```
+
+### Quick Start
+
+```javascript
+import FalconAlgoSDK, { Networks } from './falcon-algo-sdk/index.js';
+
+async function example() {
+  // Initialize SDK for TestNet
+  const sdk = new FalconAlgoSDK(Networks.TESTNET);
+  
+  // Create new Falcon-protected account
+  const account = await sdk.createFalconAccount();
+  console.log(`Account: ${account.address}`);
+  
+  // Convert existing account (requires mnemonic)
+  const mnemonic = 'your 25 word mnemonic here...';
+  const conversionInfo = await sdk.convertToFalconAccount(mnemonic);
+  await sdk.submitConversion(conversionInfo);
+  
+  // Make post-quantum secured payment
+  const payment = await sdk.createPayment({
+    sender: account.address,
+    receiver: 'RECEIVER_ADDRESS',
+    amount: 1000000, // 1 Algo
+    note: 'Post-quantum payment'
+  }, account);
+}
+```
+
+### Testing
+
+Run the SDK tests:
+
+```bash
+cd falcon-algo-sdk
+
+# Unit tests (no network required)
+npm test
+
+# Integration test (requires TestNet funding)
+npm run test:integration
+```
+
+The integration test demonstrates the complete workflow:
+1. Creates and funds an Algorand account
+2. Converts it to Falcon-protected via rekeying
+3. Makes a post-quantum secured payment using transaction groups
+4. Provides educational logs throughout the process
+
+See the [`falcon-algo-sdk/README.md`](falcon-algo-sdk/README.md) for complete documentation and API reference.
 
 ## Building from Source
 

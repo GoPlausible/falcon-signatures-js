@@ -4,7 +4,7 @@
  * 1. Create standard Algorand account
  * 2. Fund it via TestNet faucet  
  * 3. Convert to Falcon-protected account
- * 4. Make a post-quantum secured payment
+ * 4. Make a post-quantum Resistant account payment
  * 
  * This is an educational test showing the complete post-quantum migration process.
  */
@@ -121,7 +121,7 @@ async function checkBalance(algod, address, requiredAmount = 0) {
 async function runIntegrationTest() {
   console.log('🚀 Falcon-Algorand SDK Integration Test');
   console.log('=====================================');
-  console.log('This test demonstrates the complete flow from standard to post-quantum secured Algorand accounts.\n');
+  console.log('This test demonstrates the complete flow from standard to post-quantum Resistant Algorand accounts.\n');
 
   try {
     // Step 1: Initialize SDK
@@ -271,14 +271,14 @@ async function runIntegrationTest() {
     log(`Falcon signature size: ${logicSig.lsig.args[0].length} bytes`, 'falcon');
 
     // Step 9: Create transaction group with dummy transactions for additional pool bytes
-    log(`Creating post-quantum secured payment transaction group...`, 'step');
+    log(`Creating post-quantum Resistant account payment transaction group...`, 'step');
     log(`Sending ${PAYMENT_AMOUNT_ALGO} Algo to: ${TARGET_ADDRESS}`, 'algo');
 
     const paymentParams = {
       sender: senderAddress, // Original address (now rekeyed)
       receiver: TARGET_ADDRESS,
       amount: PAYMENT_AMOUNT_MICRO_ALGOS,
-      note: `Falcon PQ-secured payment - ${new Date().toISOString()}`
+      note: `Falcon PQ-Resistant payment - ${new Date().toISOString()}`
     };
 
     // Get transaction parameters
@@ -372,7 +372,7 @@ async function runIntegrationTest() {
     log(`Total group size: ${signedGroup.reduce((sum, tx) => sum + tx.length, 0)} bytes`, 'info');
 
     // Step 10: Submit transaction group
-    log('Submitting post-quantum secured transaction group to TestNet...', 'step');
+    log('Submitting transaction group to TestNet...', 'step');
     
     const txResponse = await sdk.algod.sendRawTransaction(signedGroup).do();
     const paymentTxId = txResponse.txid;
@@ -399,7 +399,7 @@ async function runIntegrationTest() {
     console.log(`📄 Transaction ID: ${paymentTxId}`);
     console.log(`🔍 View on AlloExplorer: https://testnet.algoexplorer.io/tx/${paymentTxId}`);
     console.log(`🌐 View on Allo: https://lora.algokit.io/testnet/transaction/${paymentTxId}`);
-    console.log(`🔐 Signature Algorithm: Falcon-1024 (Post-Quantum Secure)`);
+    console.log(`🔐 Signature Algorithm: Falcon-1024 (Post-Quantum Resistant)`);
     console.log(`📊 Signature Size: ${logicSig.lsig.args[0].length} bytes`);
     console.log(`💰 Transaction Fee: ${paymentConfirmation.txn.txn.fee} microAlgos`);
     console.log(`🏦 Sender Final Balance: ${FalconAlgoUtils.microAlgosToAlgos(senderFinalBalance.balance)} Algo`);
@@ -407,7 +407,7 @@ async function runIntegrationTest() {
 
     console.log('\n🔬 EDUCATIONAL INSIGHTS');
     console.log('=======================');
-    console.log('🛡️  Post-Quantum Security: This transaction is secure against quantum computer attacks');
+    console.log('🛡️  Post-Quantum Security: This transaction is resistant against quantum computer attacks');
     console.log('🔑 Falcon Signatures: Used deterministic lattice-based cryptography');
     console.log('📋 LogicSig Integration: Leveraged Algorand\'s smart contract system for verification');
     console.log('🔄 Account Rekeying: Original account now requires Falcon signatures for all transactions');

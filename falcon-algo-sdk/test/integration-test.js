@@ -291,7 +291,7 @@ async function runIntegrationTest() {
 
     // Step 9: Create LogicSig for transaction signing
     log('Creating LogicSig for transaction signing...', 'step');
-    const logicSig = sdk.createLogicSig(conversionInfo, paymentTxn.txID().toString());
+    const logicSig = await sdk.createLogicSig(conversionInfo, paymentTxn.txID().toString());
     
     log(`LogicSig created with address: ${logicSig.address()}`, 'success');
     log(`LogicSig arguments: ${logicSig.lsig.args.length} (Falcon signature included)`, 'info');

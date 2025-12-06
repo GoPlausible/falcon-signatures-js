@@ -336,11 +336,18 @@ falcon_verify`;
    * @param {Object} accountInfo - Account info from createFalconAccount or convertToFalconAccount
    * @returns {algosdk.LogicSigAccount} LogicSig account ready for transaction signing
    */
-  createLogicSig(accountInfo, txid) {
+  async createLogicSig(accountInfo, txid) {
     const programBytes = new Uint8Array(Buffer.from(accountInfo.logicSig.program, 'base64'));
     const raw = base32.parse(txid, { loose: true });
     const txnIdBytes = new Uint8Array(raw);
-    return new algosdk.LogicSigAccount(programBytes, [txnIdBytes]);
+   
+    const falconKeyPair = {
+      publicKey: Falcon.hexToBytes(accountInfo.falconKeys.publicKey),
+      secretKey: Falcon.hexToBytes(accountInfo.falconKeys.secretKey)
+    };
+    const arg0 = await this.falcon.sign(txnIdBytes, falconKeyPair.secretKey);
+
+    return new algosdk.LogicSigAccount(programBytes, [arg0]);
   }
 
   /**
@@ -350,7 +357,7 @@ falcon_verify`;
    * @returns {Promise<Object>} Signed transaction
    */
   async signTransaction(transaction, accountInfo, txid) {
-    const lsig = this.createLogicSig(accountInfo, txid);
+    const lsig = await this.createLogicSig(accountInfo, txid);
     return algosdk.signLogicSigTransactionObject(transaction, lsig);
   }
 

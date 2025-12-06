@@ -125,7 +125,7 @@ async function runTests() {
     const sdk = new FalconAlgoSDK(Networks.TESTNET);
     const account = await sdk.createFalconAccount();
     
-    const lsig = sdk.createLogicSig(account);
+    const lsig = await sdk.createLogicSig(account);
     
     if (!lsig || !lsig.lsig || !lsig.address()) {
       throw new Error('LogicSig not properly created');

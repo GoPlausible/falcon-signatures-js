@@ -338,7 +338,7 @@ falcon_verify`;
    */
   createLogicSig(accountInfo, txid) {
     const programBytes = new Uint8Array(Buffer.from(accountInfo.logicSig.program, 'base64'));
-    const txnIdBytes = new Uint8Array(Buffer.from(txid));
+    const txnIdBytes = new Uint8Array(txid);
     return new algosdk.LogicSigAccount(programBytes, [txnIdBytes]);
   }
 

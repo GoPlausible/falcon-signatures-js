@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "algosdk": "^3.5.2",
+    "@noble/ed25519":"^3.0.0",
     "falcon-signatures": "1.4.0"
   },
   "devDependencies": {

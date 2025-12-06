@@ -5,7 +5,7 @@
 
 import algosdk from 'algosdk';
 import Falcon from 'falcon-signatures';
-
+import { Point } from '@noble/ed25519';
 /**
  * Network configurations
  */
@@ -30,6 +30,14 @@ export const Networks = {
   }
 };
 
+function isOnCurve(bytes) {
+  try {
+    Point.fromHex(bytes);
+    return true;  // BAD
+  } catch {
+    return false; // GOOD
+  }
+}
 /**
  * Main SDK class for Falcon-powered Algorand accounts
  */
@@ -66,33 +74,18 @@ export class FalconAlgoSDK {
   /**
    * Generate TEAL program for Falcon signature verification
    * @param {Uint8Array} falconPublicKey - Falcon public key
-   * @param {Uint8Array} messageToVerify - Message that will be verified (typically account's ed25519 public key)
    * @returns {string} TEAL program source code
    * @private
    */
-  _generateTealProgram(falconPublicKey, messageToVerify) {
+  _generateTealProgram(falconPublicKey, counter) {
     return `#pragma version 12
-bytecblock 0x00
-pushbytes 0x${Buffer.from(messageToVerify).toString('hex')}
-arg 0
-pushbytes 0x${Buffer.from(falconPublicKey).toString('hex')}
-falcon_verify`;
-  }
-
-  /**
-   * Generate TEAL program for transaction ID verification
-   * @param {Uint8Array} falconPublicKey - Falcon public key
-   * @returns {string} TEAL program source code for verifying transaction signatures
-   * @private
-   */
-  _generateTxnTealProgram(falconPublicKey) {
-    return `#pragma version 12
-bytecblock 0x00
+bytecblock 0x${counter.toString(16).padStart(2, '0')}
 gtxn 0 TxID
 arg 0
 pushbytes 0x${Buffer.from(falconPublicKey).toString('hex')}
 falcon_verify`;
   }
+
 
   /**
    * Core Function 1: Create a new Falcon-protected Algorand account
@@ -102,14 +95,14 @@ falcon_verify`;
    */
   async createFalconAccount(options = {}) {
     await this._ensureInitialized();
-    
+
     const { generateEdKeys = true } = options;
 
     console.log('Generating Falcon-protected Algorand account...');
-    
+
     // 1. Generate Falcon keypair
     const falconKeys = await this.falcon.keypair();
-    
+
     // 2. Optionally generate standard Algorand keys for backup/compatibility
     let algoAccount = null;
     let algoAddress = null;
@@ -117,55 +110,66 @@ falcon_verify`;
       algoAccount = algosdk.generateAccount();
       algoAddress = algoAccount.addr.toString();
     }
-    
+
     // 3. Create TEAL program that verifies Falcon signatures
-    // For new accounts, we'll use the Falcon public key itself as the message to verify
-    const messageToVerify = falconKeys.publicKey.slice(0, 32); // Use first 32 bytes as identifier
-    const tealProgram = this._generateTealProgram(falconKeys.publicKey, messageToVerify);
-    
     // 4. Compile TEAL program to get the escrow address (this becomes our account address)
-    const compileResp = await this.algod.compile(tealProgram).do();
-    const programBytes = new Uint8Array(Buffer.from(compileResp.result, "base64"));
-    const escrowAddress = compileResp.hash; // This is the actual account address
-    
+
+    let tealProgram = null;
+    let programBytes = null;
+    let escrowAddress = null;
+    for (let counter = 0; counter < 256; counter++) {
+      tealProgram = this._generateTealProgram(falconKeys.publicKey, counter);
+      const compileResp = await this.algod.compile(tealProgram).do();
+      programBytes = new Uint8Array(Buffer.from(compileResp.result, "base64"));
+
+      const addressBytes = algosdk.decodeAddress(compileResp.hash).publicKey;
+      if (!isOnCurve(addressBytes)) {
+        escrowAddress = compileResp.hash;
+        break;
+      }
+    }
+
+    const messageToVerify = generateEdKeys ? Buffer.from(algoAccount.sk.slice(-32)) : new Uint8Array([0]);
+
     // 5. Generate the Falcon signature for the verification message
     const falconSignature = await this.falcon.sign(messageToVerify, falconKeys.secretKey);
-    
+
     // 6. Verify the setup works
     const verifyResult = await this.falcon.verify(messageToVerify, falconSignature, falconKeys.publicKey);
     if (!verifyResult) {
       throw new Error('Failed to verify Falcon signature setup');
     }
-    
+
     const accountInfo = {
       // Primary Falcon-protected address (escrow address from TEAL compilation)
       address: escrowAddress,
+ 
       falconKeys: {
         publicKey: Falcon.bytesToHex(falconKeys.publicKey),
         secretKey: Falcon.bytesToHex(falconKeys.secretKey)
       },
-      
+
       // Backup ed25519 account (if generated)
       backupAccount: algoAccount ? {
         address: algoAddress,
         mnemonic: algosdk.secretKeyToMnemonic(algoAccount.sk),
         publicKey: Buffer.from(algoAccount.sk.slice(-32)).toString('hex')
       } : null,
-      
+
       // LogicSig information
       logicSig: {
+        counter,
         program: Buffer.from(programBytes).toString('base64'),
         address: escrowAddress, // LogicSig address matches the escrow address
         verificationMessage: Buffer.from(messageToVerify).toString('hex'),
-        signature: Buffer.from(falconSignature).toString('hex')
       },
-      
+
       // Metadata
       created: new Date().toISOString(),
       network: this.network.name,
       type: 'falcon-protected'
     };
-    
+
     console.log(`✅ Falcon-protected account created: ${escrowAddress}`);
     return accountInfo;
   }
@@ -180,9 +184,9 @@ falcon_verify`;
    */
   async convertToFalconAccount(account, falconKeys = null) {
     await this._ensureInitialized();
-    
+
     console.log('Converting existing Algorand account to Falcon-protected...');
-    
+
     // 1. Parse the existing account - properly handle mnemonic input
     let algoAccount;
     if (typeof account === 'string') {
@@ -193,7 +197,7 @@ falcon_verify`;
     } else {
       throw new Error('Invalid account format. Provide mnemonic string or account object with secretKey.');
     }
-    
+
     // 2. Generate or use provided Falcon keys
     let falconKeyPair;
     if (falconKeys) {
@@ -204,32 +208,41 @@ falcon_verify`;
     } else {
       falconKeyPair = await this.falcon.keypair();
     }
-    
+
     // 3. Extract ed25519 public key from the account (last 32 bytes of secret key)
     const ed25519PublicKey = Buffer.from(algoAccount.sk.slice(-32));
     const originalAddress = algoAccount.addr.toString();
     console.log(`Converting account: ${originalAddress}`);
-    
+
     // 4. Create TEAL program that verifies Falcon signatures of this account's public key
-    const tealProgram = this._generateTealProgram(falconKeyPair.publicKey, ed25519PublicKey);
-    
     // 5. Compile TEAL program to get escrow address
-    const compileResp = await this.algod.compile(tealProgram).do();
-    const programBytes = new Uint8Array(Buffer.from(compileResp.result, "base64"));
-    const escrowAddress = compileResp.hash; // This becomes the new account address
-    
+    let tealProgram = null;
+    let programBytes = null;
+    let escrowAddress = null;
+    for (let counter = 0; counter < 256; counter++) {
+      tealProgram = this._generateTealProgram(falconKeyPair.publicKey, counter);
+      const compileResp = await this.algod.compile(tealProgram).do();
+      programBytes = new Uint8Array(Buffer.from(compileResp.result, "base64"));
+
+      const addressBytes = algosdk.decodeAddress(compileResp.hash).publicKey;
+      if (!isOnCurve(addressBytes)) {
+        escrowAddress = compileResp.hash;
+        break;
+      }
+    }
+
     // 6. Generate Falcon signature of the account's ed25519 public key
     const falconSignature = await this.falcon.sign(ed25519PublicKey, falconKeyPair.secretKey);
-    
+
     // 7. Verify the signature works
     const verifyResult = await this.falcon.verify(ed25519PublicKey, falconSignature, falconKeyPair.publicKey);
     if (!verifyResult) {
       throw new Error('Failed to verify Falcon signature during conversion');
     }
-    
+
     // 8. Create rekey transaction
     const params = await this.algod.getTransactionParams().do();
-    
+
     const rekeyTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
       sender: originalAddress,
       receiver: originalAddress, // Send to self
@@ -237,48 +250,47 @@ falcon_verify`;
       rekeyTo: escrowAddress, // Rekey to Falcon-protected LogicSig
       suggestedParams: params
     });
-    
+
     // 9. Sign rekey transaction with original account
     const signedRekeyTxn = rekeyTxn.signTxn(algoAccount.sk);
-    
+
     const conversionInfo = {
       // Original account info (use the account we actually derived from mnemonic)
       originalAddress,
       originalMnemonic: algosdk.secretKeyToMnemonic(algoAccount.sk),
-      
+
       // New Falcon-protected address (escrow address from TEAL compilation)
       newAddress: escrowAddress,
-      
+
       // Falcon keys
       falconKeys: {
         publicKey: Falcon.bytesToHex(falconKeyPair.publicKey),
         secretKey: Falcon.bytesToHex(falconKeyPair.secretKey)
       },
-      
+
       // LogicSig information
       logicSig: {
         program: Buffer.from(programBytes).toString('base64'),
         address: escrowAddress, // LogicSig address matches escrow address
         verificationMessage: ed25519PublicKey.toString('hex'),
-        signature: Buffer.from(falconSignature).toString('hex')
       },
-      
+
       // Rekey transaction (ready to submit)
       rekeyTransaction: {
         txn: rekeyTxn,
         signedTxn: signedRekeyTxn,
         txId: rekeyTxn.txID()
       },
-      
+
       // Metadata
       converted: new Date().toISOString(),
       network: this.network.name,
       type: 'converted-to-falcon'
     };
-    
+
     console.log(`✅ Conversion prepared. Original: ${originalAddress}, New: ${escrowAddress}`);
     console.log(`Submit the rekey transaction to complete conversion: ${rekeyTxn.txID()}`);
-    
+
     return conversionInfo;
   }
 
@@ -290,22 +302,22 @@ falcon_verify`;
    */
   async submitConversion(conversionInfo, waitForConfirmation = true) {
     console.log('Submitting rekey transaction...');
-    
+
     const txResponse = await this.algod.sendRawTransaction(conversionInfo.rekeyTransaction.signedTxn).do();
     console.log(`Rekey transaction submitted: ${txResponse.txid}`);
-    
+
     if (waitForConfirmation) {
       console.log('Waiting for confirmation...');
       const confirmation = await algosdk.waitForConfirmation(this.algod, txResponse.txid, 10);
       console.log(`✅ Rekey confirmed in round: ${confirmation["confirmed-round"]}`);
-      
+
       return {
         txId: txResponse.txid,
         confirmedRound: confirmation["confirmed-round"],
         status: 'confirmed'
       };
     }
-    
+
     return {
       txId: txResponse.txid,
       status: 'submitted'
@@ -320,7 +332,7 @@ falcon_verify`;
   createLogicSig(accountInfo) {
     const programBytes = new Uint8Array(Buffer.from(accountInfo.logicSig.program, 'base64'));
     const signature = Falcon.hexToBytes(accountInfo.logicSig.signature);
-    
+
     return new algosdk.LogicSigAccount(programBytes, [signature]);
   }
 
@@ -347,10 +359,10 @@ falcon_verify`;
    */
   async createPayment(params, accountInfo) {
     const { sender, receiver, amount, note } = params;
-    
+
     // Get suggested parameters
     const suggestedParams = await this.algod.getTransactionParams().do();
-    
+
     // Create payment transaction
     const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
       sender,
@@ -359,7 +371,7 @@ falcon_verify`;
       note: note ? new Uint8Array(Buffer.from(note)) : undefined,
       suggestedParams
     });
-    
+
     // Sign with Falcon LogicSig
     return await this.signTransaction(txn, accountInfo);
   }
@@ -396,20 +408,20 @@ falcon_verify`;
    */
   async rotateFalconKeys(currentAccountInfo, oldFalconKeys) {
     await this._ensureInitialized();
-    
+
     console.log('Rotating Falcon keys for account...');
-    
+
     // Generate new Falcon keypair
     const newFalconKeys = await this.falcon.keypair();
-    
+
     // For key rotation, we need to create a new LogicSig that proves ownership
     // This is a simplified approach - in production, you might want a more sophisticated key rotation mechanism
-    
+
     const rotatedAccount = await this.createFalconAccount({ generateEdKeys: false });
-    
+
     console.log(`✅ Keys rotated. New address: ${rotatedAccount.address}`);
     console.log('Note: You will need to transfer funds from old to new address and update references');
-    
+
     return {
       ...rotatedAccount,
       previousAddress: currentAccountInfo.address,
@@ -427,17 +439,17 @@ falcon_verify`;
     if (transactions.length !== accountInfos.length) {
       throw new Error('Number of transactions must match number of account infos');
     }
-    
+
     // Assign group ID
     algosdk.assignGroupID(transactions);
-    
+
     // Sign each transaction with its corresponding account
     const signedTxns = [];
     for (let i = 0; i < transactions.length; i++) {
       const signedTxn = await this.signTransaction(transactions[i], accountInfos[i]);
       signedTxns.push(signedTxn.blob);
     }
-    
+
     return signedTxns;
   }
 
@@ -449,13 +461,13 @@ falcon_verify`;
    */
   async submitTransactionGroup(signedTransactions, maxRounds = 10) {
     console.log(`Submitting transaction group with ${signedTransactions.length} transactions...`);
-    
+
     const txResponse = await this.algod.sendRawTransaction(signedTransactions).do();
     console.log(`Group submitted with TxID: ${txResponse.txid}`);
-    
+
     const confirmation = await algosdk.waitForConfirmation(this.algod, txResponse.txid, maxRounds);
     console.log(`✅ Group confirmed in round: ${confirmation["confirmed-round"]}`);
-    
+
     return {
       txId: txResponse.txid,
       confirmedRound: confirmation["confirmed-round"],
@@ -470,14 +482,14 @@ falcon_verify`;
    */
   async estimateFees(transactionCount = 1) {
     const params = await this.algod.getTransactionParams().do();
-    
+
     // Falcon transactions are typically larger due to LogicSig signatures
     const baseFee = params.fee || 1000; // 1000 microAlgos base fee
     const falconOverhead = 500; // Additional overhead for Falcon signatures
-    
+
     const estimatedFeePerTx = baseFee + falconOverhead;
     const totalFee = estimatedFeePerTx * transactionCount;
-    
+
     return {
       baseFePerTransaction: baseFee,
       falconOverheadPerTransaction: falconOverhead,
@@ -497,14 +509,14 @@ falcon_verify`;
     // Create a deep copy to avoid modifying the original
     const backup = JSON.parse(JSON.stringify(accountInfo));
     backup.backedUp = new Date().toISOString();
-    
+
     if (!includeSecretKey) {
       delete backup.falconKeys.secretKey;
       if (backup.backupAccount) {
         delete backup.backupAccount.mnemonic;
       }
     }
-    
+
     return JSON.stringify(backup, null, 2);
   }
 
@@ -516,13 +528,13 @@ falcon_verify`;
    */
   restoreAccount(backupJson, secretKey = null) {
     const accountInfo = JSON.parse(backupJson);
-    
+
     if (!accountInfo.falconKeys.secretKey && secretKey) {
       accountInfo.falconKeys.secretKey = secretKey;
     }
-    
+
     accountInfo.restored = new Date().toISOString();
-    
+
     return accountInfo;
   }
 }

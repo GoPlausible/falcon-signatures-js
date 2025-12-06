@@ -289,13 +289,7 @@ async function runIntegrationTest() {
       suggestedParams: { ...suggestedParams, fee: 4000, flatFee: true } // Cover all transaction fees
     });
 
-    // Step 9: Create LogicSig for transaction signing
-    log('Creating LogicSig for transaction signing...', 'step');
-    const logicSig = await sdk.createLogicSig(conversionInfo, paymentTxn.txID().toString());
-    
-    log(`LogicSig created with address: ${logicSig.address()}`, 'success');
-    log(`LogicSig arguments: ${logicSig.lsig.args.length} (Falcon signature included)`, 'info');
-    log(`Falcon signature size: ${logicSig.lsig.args[0].length} bytes`, 'falcon');
+   
 
     // Create dummy LogicSig for additional pool bytes (similar to falcon-txn-test pattern)
     log('Creating dummy LogicSig for transaction group optimization...', 'step');
@@ -353,12 +347,19 @@ async function runIntegrationTest() {
     const transactions = [paymentTxn, dummyTx1, dummyTx2, dummyTx3];
     algosdk.assignGroupID(transactions);
 
+
     log('Transaction group created with additional pool bytes', 'success');
     log(`Group contains ${transactions.length} transactions`, 'info');
     log(`Main payment: ${PAYMENT_AMOUNT_ALGO} Algo from ${senderAddress} to ${TARGET_ADDRESS}`, 'algo');
     log(`Dummy transactions: 3x zero-amount transactions for pool byte optimization`, 'info');
     log(`Total group fee: 4000 microAlgos (covered by main transaction)`, 'info');
-
+    // Step 9: Create LogicSig for transaction signing
+    log('Creating LogicSig for transaction signing...', 'step');
+    const logicSig = await sdk.createLogicSig(conversionInfo, paymentTxn.txID().toString());
+    
+    log(`LogicSig created with address: ${logicSig.address()}`, 'success');
+    log(`LogicSig arguments: ${logicSig.lsig.args.length} (Falcon signature included)`, 'info');
+    log(`Falcon signature size: ${logicSig.lsig.args[0].length} bytes`, 'falcon');
     // Sign with LogicSig (Falcon signature for main tx, dummy LogicSig for others)
     log('Signing transaction group with Falcon post-quantum signature...', 'falcon');
     const signedPayment = algosdk.signLogicSigTransactionObject(paymentTxn, logicSig);

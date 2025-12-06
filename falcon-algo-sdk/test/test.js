@@ -3,7 +3,7 @@
  * Basic tests to verify core functionality
  */
 
-import FalconAlgoSDK, { Networks, FalconAlgoUtils } from '../index.js';
+import FalconAlgoSDK, { Networks, FalconAlgoUtils } from '../dist/index.js';
 import algosdk from 'algosdk';
 
 let testResults = [];
@@ -124,8 +124,10 @@ async function runTests() {
   await test('LogicSig creation', async () => {
     const sdk = new FalconAlgoSDK(Networks.TESTNET);
     const account = await sdk.createFalconAccount();
+    // Create a dummy transaction object that provides a txID() method
+    const txid = '347BME23NZR3CGQA3EDRZTWJZWJ43QYDOVV43SVWTCI6EMJHVVVQ'
     
-    const lsig = await sdk.createLogicSig(account);
+    const lsig = await sdk.createLogicSig(account, txid);
     
     if (!lsig || !lsig.lsig || !lsig.address()) {
       throw new Error('LogicSig not properly created');

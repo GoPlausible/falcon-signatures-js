@@ -1,23 +1,27 @@
 {
   "name": "falcon-algo-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SDK for post-quantum resistant Algorand accounts using Falcon signatures",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "bin": {
     "falcon-algo": "./cli.js"
   },
   "files": [
-    "index.js",
+    "dist/",
+    "src/",
     "cli.js",
     "lib/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "test": "node test/test.js",
-    "test:integration": "node test/integration-test.js",
-    "example": "node examples/example.js"
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "npm run build && node test/test.js",
+    "test:integration": "npm run build && node test/integration-test.js",
+    "example": "npm run build && node examples/example.js"
   },
   "dependencies": {
     "algosdk": "^3.5.2",
@@ -26,7 +30,9 @@
     "falcon-signatures": "1.4.0"
   },
   "devDependencies": {
-    "dotenv": "^16.4.5"
+    "@types/node": "^22.6.1",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.5.4"
   },
   "keywords": [
     "algorand",

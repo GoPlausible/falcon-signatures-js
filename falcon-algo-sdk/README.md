@@ -128,14 +128,14 @@ const signedTxn = await sdk.createPayment({
 Signs any Algorand transaction with Falcon signature.
 
 ```javascript
-const signedTxn = await sdk.signTransaction(txnObject, accountInfo);
+const signedTxn = await sdk.signTransaction(txnObject, accountInfo, txnObject.txID());
 ```
 
 #### Account Management
 
 ##### `getAccountInfo(address)`
 ##### `hasSufficientBalance(address, amount)`
-##### `createLogicSig(accountInfo)`
+##### `createLogicSig(accountInfo, txId)`
 
 #### Advanced Features
 
@@ -300,6 +300,9 @@ The integration test demonstrates the complete workflow:
 - Internet connection for TestNet access
 - Manual funding step at https://bank.testnet.algorand.network/
 - Approximately 2-3 minutes to complete
+- Reuses `standard-account.json` and `falcon-protected-account.json` between runs; delete them to regenerate fresh accounts/keys.
+- Uses BigInt-safe JSON serialization so you can inspect the saved files directly.
+- Builds a transaction group (one real payment + dummy zero-amount txns) to ensure enough pool bytes for the Falcon LogicSig arguments.
 
 #### Generated Files
 
@@ -314,114 +317,117 @@ The integration test creates these files in the project directory:
 
 🚀 Falcon-Algorand SDK Integration Test
 =====================================
-This test demonstrates the complete flow from standard to post-quantum secured Algorand accounts.
+This test demonstrates the complete flow from standard to post-quantum Resistant Algorand accounts.
 
-[18:49:40] 🔄 Initializing Falcon-Algorand SDK on TestNet...
-[18:49:40] ✅ SDK initialized successfully
-[18:49:40] 📝 Connected to: https://testnet-api.algonode.cloud
-[18:49:40] 🔄 Creating new standard Algorand account...
-[18:49:40] ✅ Standard Algorand account created successfully!
-[18:49:40] 🔷 Address: MN5UCKFURRUDQOXLLYRGWC3UFDPIURXB4T5FMEVOEEX2W6VMFW4GVXQIHY
-[18:49:40] 📝 Mnemonic: infant cave bag fence firm south brass stem music wrestle side tribe cube grit local inside island giant unfold detect blue bench mom able dust
-[18:49:40] 📝 Account saved to: /Users/mg/Documents/GitHub/GoPlausible/falcon-signatures-js/falcon-algo-sdk/standard-account.json
-[18:49:41] 📝 Account MN5UCKFURR... balance: 0 Algo (0 microAlgos)
+[17:07:47] 🔄 Initializing Falcon-Algorand SDK on TestNet...
+[17:07:47] ✅ SDK initialized successfully
+[17:07:47] 📝 Connected to: https://testnet-api.algonode.cloud
+[17:07:47] 🔄 Creating new standard Algorand account...
+[17:07:47] ✅ Standard Algorand account created successfully!
+[17:07:47] 🔷 Address: YXUUOO24TA2AFDR56MYQXSVCNUYQAN5WTXKZ22VDARWKFVKHXHXDZI5HQI
+[17:07:47] 📝 Mnemonic: trap rebel oak nephew bicycle great candy coral outdoor deliver agent tomato crouch april edit chief silver liar inspire decade offer first science absorb domain
+[17:07:47] 📝 Account saved to: /Users/mg/Documents/GitHub/GoPlausible/falcon-signatures-js/falcon-algo-sdk/standard-account.json
+[17:07:48] 📝 Account YXUUOO24TA... balance: 0 Algo (0 microAlgos)
 
 🏦 ACCOUNT FUNDING REQUIRED
 ===========================
 Please fund the account with at least 0.2 Algo for testing:
 1. Visit: https://bank.testnet.algorand.network/
-2. Enter address: MN5UCKFURRUDQOXLLYRGWC3UFDPIURXB4T5FMEVOEEX2W6VMFW4GVXQIHY
+2. Enter address: YXUUOO24TA2AFDR56MYQXSVCNUYQAN5WTXKZ22VDARWKFVKHXHXDZI5HQI
 3. Click "Dispense" to receive 10 TestNet Algos
 4. Wait for the transaction to complete
 
 Press Enter after funding the account...
-[18:50:05] 🔄 Checking account balance after funding...
-[18:50:05] 📝 Account MN5UCKFURR... balance: 10 Algo (10000000 microAlgos)
-[18:50:05] ✅ Required: 0.2 Algo - Sufficient funds
-[18:50:05] ✅ Account successfully funded!
-[18:50:05] 🔄 Converting account to Falcon-protected...
-[18:50:05] 🦅 Generating Falcon keypair...
+[17:08:11] 🔄 Checking account balance after funding...
+[17:08:11] 📝 Account YXUUOO24TA... balance: 10 Algo (10000000 microAlgos)
+[17:08:11] ✅ Required: 0.2 Algo - Sufficient funds
+[17:08:11] ✅ Account successfully funded!
+[17:08:11] 🔄 Converting account to Falcon-protected...
+[17:08:11] 🦅 Generating Falcon keypair...
 Converting existing Algorand account to Falcon-protected...
-Converting account: MN5UCKFURRUDQOXLLYRGWC3UFDPIURXB4T5FMEVOEEX2W6VMFW4GVXQIHY
+Converting account: YXUUOO24TA2AFDR56MYQXSVCNUYQAN5WTXKZ22VDARWKFVKHXHXDZI5HQI
+Selected counter: 0
 [falcon_wrapper] falcon_det1024_sign_compressed_wrapper called
-[falcon_wrapper] Signature generated successfully (1233 bytes)
+[falcon_wrapper] Signature generated successfully (1232 bytes)
 [falcon_wrapper] falcon_det1024_verify_compressed_wrapper called with:
   - sig: 0x18ae0
-  - sig_len: 1233
+  - sig_len: 1232
   - pk: 0x18fb8
   - msg: 0x18ab8
   - msg_len: 32
 [falcon_wrapper] Signature verified successfully
-✅ Conversion prepared. Original: MN5UCKFURRUDQOXLLYRGWC3UFDPIURXB4T5FMEVOEEX2W6VMFW4GVXQIHY, New: WNA254RYLK5L2N4EHZA23HICZQXSA5MTLIBHGNYOWMWWI64LGFRD5I5O7I
-Submit the rekey transaction to complete conversion: Q6FIAN3UJ2T4CMOU7LRASDMRTIVN54LP2UOOOX7H5DRUU3OVUVGA
-[18:50:06] ✅ Falcon keypair generated successfully!
-[18:50:06] 🦅 Falcon Public Key: 0a0dccc851d0c56e968999c342ce0c4ad28870a2...
-[18:50:06] 🔷 Original Address: MN5UCKFURRUDQOXLLYRGWC3UFDPIURXB4T5FMEVOEEX2W6VMFW4GVXQIHY
-[18:50:06] 🔐 New PQ Address: WNA254RYLK5L2N4EHZA23HICZQXSA5MTLIBHGNYOWMWWI64LGFRD5I5O7I
-[18:50:06] 📝 LogicSig Program: DCYBAQCAIGN7QSi0jGg4OuteImsLdCjeikbh5PpW... (2452 chars)
-[18:50:06] 📝 Falcon account info saved to: falcon-protected-account.json
-[18:50:06] 🔄 Submitting rekey transaction to convert account to post-quantum security...
+✅ Conversion prepared. Original: YXUUOO24TA2AFDR56MYQXSVCNUYQAN5WTXKZ22VDARWKFVKHXHXDZI5HQI, New: APBUJDMEJCPRULUBFTOPFPWJH4KKFG4KEGZMSGLJKUHWZ3IJEHSEL46A4Y
+Submit the rekey transaction to complete conversion: CU7AJQDNYI3YPMVFRULFMVDDD2HCBE6BFVR2CMSUEXW6AEWTHILA
+[17:08:12] ✅ Falcon keypair generated successfully!
+[17:08:12] 🦅 Falcon Public Key: 0ab9207e060215d931b4d81372d77f30941cf073...
+[17:08:12] 🔷 Original Address: YXUUOO24TA2AFDR56MYQXSVCNUYQAN5WTXKZ22VDARWKFVKHXHXDZI5HQI
+[17:08:12] 🔐 New PQ Address: APBUJDMEJCPRULUBFTOPFPWJH4KKFG4KEGZMSGLJKUHWZ3IJEHSEL46A4Y
+[17:08:12] 📝 LogicSig Program: DCYBAQAzABctgIEOCrkgfgYCFdkxtNgTctd/MJQc... (2408 chars)
+[17:08:12] 📝 Falcon account info saved to: falcon-protected-account.json
+[17:08:12] 🔄 Submitting rekey transaction to convert account to post-quantum security...
 Submitting rekey transaction...
-Rekey transaction submitted: Q6FIAN3UJ2T4CMOU7LRASDMRTIVN54LP2UOOOX7H5DRUU3OVUVGA
+Rekey transaction submitted: CU7AJQDNYI3YPMVFRULFMVDDD2HCBE6BFVR2CMSUEXW6AEWTHILA
 Waiting for confirmation...
 ✅ Rekey confirmed in round: undefined
-[18:50:09] ✅ Rekey transaction submitted successfully!
-[18:50:09] 🔷 Transaction ID: Q6FIAN3UJ2T4CMOU7LRASDMRTIVN54LP2UOOOX7H5DRUU3OVUVGA
-[18:50:09] 📝 Confirmed in round: undefined
-[18:50:09] 🔐 Account is now protected by Falcon post-quantum signatures!
-[18:50:09] 🔄 Verifying account rekey status...
-[18:50:09] 📝 Rekeyed Account: 
-[18:50:09] 📝 Auth Address: WNA254RYLK5L2N4EHZA23HICZQXSA5MTLIBHGNYOWMWWI64LGFRD5I5O7I
-[18:50:09] 📝 New Address: WNA254RYLK5L2N4EHZA23HICZQXSA5MTLIBHGNYOWMWWI64LGFRD5I5O7I
-[18:50:09] ✅ ✅ Account successfully rekeyed to Falcon LogicSig!
-[18:50:09] 🔐 Auth Address: WNA254RYLK5L2N4EHZA23HICZQXSA5MTLIBHGNYOWMWWI64LGFRD5I5O7I
-[18:50:09] 🔄 Creating LogicSig for transaction signing...
-[18:50:09] ✅ LogicSig created with address: WNA254RYLK5L2N4EHZA23HICZQXSA5MTLIBHGNYOWMWWI64LGFRD5I5O7I
-[18:50:09] 📝 LogicSig arguments: 1 (Falcon signature included)
-[18:50:09] 🦅 Falcon signature size: 1233 bytes
-[18:50:09] 🔄 Creating post-quantum secured payment transaction group...
-[18:50:09] 🔷 Sending 0.1 Algo to: UTI7PAASILRDA3ISHY5M7J7LNRX2AIVQJWI7ZKCCGKVLMFD3VPR5PWSZ4I
-[18:50:10] 📝 Network fee: 0 microAlgos per transaction
-[18:50:10] 📝 Transaction validity: rounds 58003481 to 58004481
-[18:50:10] 🔄 Creating dummy LogicSig for transaction group optimization...
-[18:50:10] 📝 Dummy LogicSig Address: MK4BJ4NAVYMCPBFDW2MVUF66MG6ADZBSESKGTC6HMEZGT7VQSFYDOJ27ZI
-[18:50:10] ✅ Transaction group created with additional pool bytes
-[18:50:10] 📝 Group contains 4 transactions
-[18:50:10] 🔷 Main payment: 0.1 Algo from MN5UCKFURRUDQOXLLYRGWC3UFDPIURXB4T5FMEVOEEX2W6VMFW4GVXQIHY to UTI7PAASILRDA3ISHY5M7J7LNRX2AIVQJWI7ZKCCGKVLMFD3VPR5PWSZ4I
-[18:50:10] 📝 Dummy transactions: 3x zero-amount transactions for pool byte optimization
-[18:50:10] 📝 Total group fee: 4000 microAlgos (covered by main transaction)
-[18:50:10] 🦅 Signing transaction group with Falcon post-quantum signature...
-[18:50:10] ✅ Transaction group signed successfully with Falcon signature!
-[18:50:10] 🦅 Main transaction signed with Falcon signature (1233 bytes)
-[18:50:10] 📝 Dummy transactions signed with optimization LogicSig
-[18:50:10] 📝 Total group size: 4221 bytes
-[18:50:10] 🔄 Submitting post-quantum secured transaction group to TestNet...
-[18:50:10] ✅ Transaction group submitted successfully!
-[18:50:10] 🔷 Group Transaction ID: XRJSTJJYEDZ3J56RBEBY35JP2VR5F7BAZ23PYJH4MKZ7DFZKC76A
-[18:50:10] 🔄 Waiting for transaction confirmation: XRJSTJJYEDZ3J56RBEBY35JP2VR5F7BAZ23PYJH4MKZ7DFZKC76A
-[18:50:14] 📝 Waiting... (round 1/10)
-[18:50:16] ✅ 🎉 POST-QUANTUM PAYMENT CONFIRMED!
-[18:50:16] ✅ Confirmed in round: undefined
-[18:50:16] 📝 Transaction fee: 4000 microAlgos
-[18:50:16] 🔄 Verifying final balances...
-[18:50:16] 📝 Account MN5UCKFURR... balance: 9.895 Algo (9895000 microAlgos)
-[18:50:16] 📝 Account UTI7PAASIL... balance: 63.050318 Algo (63050318 microAlgos)
+[17:08:16] ✅ Rekey transaction submitted successfully!
+[17:08:16] 🔷 Transaction ID: CU7AJQDNYI3YPMVFRULFMVDDD2HCBE6BFVR2CMSUEXW6AEWTHILA
+[17:08:16] 📝 Confirmed in round: undefined
+[17:08:16] 🔐 Account is now protected by Falcon post-quantum signatures!
+[17:08:16] 🔄 Verifying account rekey status...
+[17:08:16] 📝 Rekeyed Account: 
+[17:08:16] 📝 Auth Address: APBUJDMEJCPRULUBFTOPFPWJH4KKFG4KEGZMSGLJKUHWZ3IJEHSEL46A4Y
+[17:08:16] 📝 New Address: APBUJDMEJCPRULUBFTOPFPWJH4KKFG4KEGZMSGLJKUHWZ3IJEHSEL46A4Y
+[17:08:16] ✅ ✅ Account successfully rekeyed to Falcon LogicSig!
+[17:08:16] 🔐 Auth Address: APBUJDMEJCPRULUBFTOPFPWJH4KKFG4KEGZMSGLJKUHWZ3IJEHSEL46A4Y
+[17:08:16] 🔄 Creating post-quantum Resistant account payment transaction group...
+[17:08:16] 🔷 Sending 0.1 Algo to: UTI7PAASILRDA3ISHY5M7J7LNRX2AIVQJWI7ZKCCGKVLMFD3VPR5PWSZ4I
+[17:08:16] 📝 Network fee: 0 microAlgos per transaction
+[17:08:16] 📝 Transaction validity: rounds 58227376 to 58228376
+[17:08:16] 🔄 Creating dummy LogicSig for transaction group optimization...
+[17:08:16] 📝 Dummy LogicSig Address: MK4BJ4NAVYMCPBFDW2MVUF66MG6ADZBSESKGTC6HMEZGT7VQSFYDOJ27ZI
+[17:08:16] ✅ Transaction group created with additional pool bytes
+[17:08:16] 📝 Group contains 4 transactions
+[17:08:16] 🔷 Main payment: 0.1 Algo from YXUUOO24TA2AFDR56MYQXSVCNUYQAN5WTXKZ22VDARWKFVKHXHXDZI5HQI to UTI7PAASILRDA3ISHY5M7J7LNRX2AIVQJWI7ZKCCGKVLMFD3VPR5PWSZ4I
+[17:08:16] 📝 Dummy transactions: 3x zero-amount transactions for pool byte optimization
+[17:08:16] 📝 Total group fee: 4000 microAlgos (covered by main transaction)
+[17:08:16] 🔄 Creating LogicSig for transaction signing...
+[falcon_wrapper] falcon_det1024_sign_compressed_wrapper called
+[falcon_wrapper] Signature generated successfully (1234 bytes)
+[17:08:18] ✅ LogicSig created with address: APBUJDMEJCPRULUBFTOPFPWJH4KKFG4KEGZMSGLJKUHWZ3IJEHSEL46A4Y
+[17:08:18] 📝 LogicSig arguments: 1 (Falcon signature included)
+[17:08:18] 🦅 Falcon signature size: 1234 bytes
+[17:08:18] 🦅 Signing transaction group with Falcon post-quantum signature...
+[17:08:18] ✅ Transaction group signed successfully with Falcon signature!
+[17:08:18] 🦅 Main transaction signed with Falcon signature (1234 bytes)
+[17:08:18] 📝 Dummy transactions signed with optimization LogicSig
+[17:08:18] 📝 Total group size: 4193 bytes
+[17:08:18] 🔄 Submitting transaction group to TestNet...
+[17:08:19] ✅ Transaction group submitted successfully!
+[17:08:19] 🔷 Group Transaction ID: LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
+[17:08:19] 🔄 Waiting for transaction confirmation: LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
+[17:08:24] 📝 Waiting... (round 1/10)
+[17:08:25] ✅ 🎉 POST-QUANTUM PAYMENT CONFIRMED!
+[17:08:25] ✅ Confirmed in round: undefined
+[17:08:25] 📝 Transaction fee: 4000 microAlgos
+[17:08:25] 🔄 Verifying final balances...
+[17:08:25] 📝 Account YXUUOO24TA... balance: 9.895 Algo (9895000 microAlgos)
+[17:08:25] 📝 Account UTI7PAASIL... balance: 63.150318 Algo (63150318 microAlgos)
 
 🎯 TRANSACTION SUMMARY
 =====================
 ✅ Successfully sent 0.1 Algo using Falcon post-quantum signatures!
-📄 Transaction ID: XRJSTJJYEDZ3J56RBEBY35JP2VR5F7BAZ23PYJH4MKZ7DFZKC76A
-🔍 View on AlloExplorer: https://testnet.algoexplorer.io/tx/XRJSTJJYEDZ3J56RBEBY35JP2VR5F7BAZ23PYJH4MKZ7DFZKC76A
-🌐 View on Allo: https://lora.algokit.io/testnet/transaction/XRJSTJJYEDZ3J56RBEBY35JP2VR5F7BAZ23PYJH4MKZ7DFZKC76A
-🔐 Signature Algorithm: Falcon-1024 (Post-Quantum Secure)
-📊 Signature Size: 1233 bytes
+📄 Transaction ID: LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
+🔍 View on AlloExplorer: https://testnet.algoexplorer.io/tx/LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
+🌐 View on Allo: https://lora.algokit.io/testnet/transaction/LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
+🔐 Signature Algorithm: Falcon-1024 (Post-Quantum Resistant)
+📊 Signature Size: 1234 bytes
 💰 Transaction Fee: 4000 microAlgos
 🏦 Sender Final Balance: 9.895 Algo
-🎯 Receiver Balance: 63.050318 Algo
+🎯 Receiver Balance: 63.150318 Algo
 
 🔬 EDUCATIONAL INSIGHTS
 =======================
-🛡️  Post-Quantum Security: This transaction is secure against quantum computer attacks
+🛡️  Post-Quantum Security: This transaction is resistant against quantum computer attacks
 🔑 Falcon Signatures: Used deterministic lattice-based cryptography
 📋 LogicSig Integration: Leveraged Algorand's smart contract system for verification
 🔄 Account Rekeying: Original account now requires Falcon signatures for all transactions
@@ -433,8 +439,8 @@ Waiting for confirmation...
 📄 standard-account.json - Original Algorand account details
 📄 falcon-protected-account.json - Complete Falcon account information
 💡 These files contain all necessary information for account recovery and future use
-[18:50:16] ✅ 🎉 Integration test completed successfully!
-[18:50:16] 🔐 Your Algorand account is now protected by post-quantum cryptography!
+[17:08:25] ✅ 🎉 Integration test completed successfully!
+[17:08:25] 🔐 Your Algorand account is now protected by post-quantum cryptography!
 ```
 
 ### Example Usage
@@ -475,6 +481,8 @@ The Falcon-Algorand SDK uses Algorand's LogicSig (Logic Signature) functionality
 2. **Account Creation**: Generates LogicSig accounts with embedded Falcon public keys  
 3. **Transaction Signing**: Signs transactions with Falcon signatures passed as LogicSig arguments
 4. **On-Chain Verification**: Algorand nodes verify Falcon signatures using the embedded TEAL program
+5. **Address Safety**: TEAL compilation iterates a counter (0–255) to pick a LogicSig address that is off the ed25519 curve (avoids ECDSA ownership collisions); the chosen counter is stored in `logicSig.counter`.
+6. **TxID Binding**: LogicSig args are a Falcon signature over the transaction ID, binding the LogicSig proof to the specific transaction.
 
 ### Architecture
 

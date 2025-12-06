@@ -117,13 +117,15 @@ falcon_verify`;
     let tealProgram = null;
     let programBytes = null;
     let escrowAddress = null;
+    let edpCounter = 0;
     for (let counter = 0; counter < 256; counter++) {
       tealProgram = this._generateTealProgram(falconKeys.publicKey, counter);
       const compileResp = await this.algod.compile(tealProgram).do();
       programBytes = new Uint8Array(Buffer.from(compileResp.result, "base64"));
-
       const addressBytes = algosdk.decodeAddress(compileResp.hash).publicKey;
       if (!isOnCurve(addressBytes)) {
+        console.log(`Selected counter: ${counter}`);
+        edpCounter = counter;
         escrowAddress = compileResp.hash;
         break;
       }
@@ -158,7 +160,7 @@ falcon_verify`;
 
       // LogicSig information
       logicSig: {
-        counter,
+        counter: edpCounter,
         program: Buffer.from(programBytes).toString('base64'),
         address: escrowAddress, // LogicSig address matches the escrow address
         verificationMessage: Buffer.from(messageToVerify).toString('hex'),
@@ -219,6 +221,7 @@ falcon_verify`;
     let tealProgram = null;
     let programBytes = null;
     let escrowAddress = null;
+    let edpCounter = 0;
     for (let counter = 0; counter < 256; counter++) {
       tealProgram = this._generateTealProgram(falconKeyPair.publicKey, counter);
       const compileResp = await this.algod.compile(tealProgram).do();
@@ -226,6 +229,8 @@ falcon_verify`;
 
       const addressBytes = algosdk.decodeAddress(compileResp.hash).publicKey;
       if (!isOnCurve(addressBytes)) {
+        console.log(`Selected counter: ${counter}`);
+        edpCounter = counter;
         escrowAddress = compileResp.hash;
         break;
       }
@@ -270,6 +275,7 @@ falcon_verify`;
 
       // LogicSig information
       logicSig: {
+        counter: edpCounter,
         program: Buffer.from(programBytes).toString('base64'),
         address: escrowAddress, // LogicSig address matches escrow address
         verificationMessage: ed25519PublicKey.toString('hex'),
@@ -329,11 +335,9 @@ falcon_verify`;
    * @param {Object} accountInfo - Account info from createFalconAccount or convertToFalconAccount
    * @returns {algosdk.LogicSigAccount} LogicSig account ready for transaction signing
    */
-  createLogicSig(accountInfo) {
+  createLogicSig(accountInfo, txID) {
     const programBytes = new Uint8Array(Buffer.from(accountInfo.logicSig.program, 'base64'));
-    const signature = Falcon.hexToBytes(accountInfo.logicSig.signature);
-
-    return new algosdk.LogicSigAccount(programBytes, [signature]);
+    return new algosdk.LogicSigAccount(programBytes, [txID]);
   }
 
   /**
@@ -343,7 +347,8 @@ falcon_verify`;
    * @returns {Promise<Object>} Signed transaction
    */
   async signTransaction(transaction, accountInfo) {
-    const lsig = this.createLogicSig(accountInfo);
+    const txID = transaction.txID();
+    const lsig = this.createLogicSig(accountInfo, txID);
     return algosdk.signLogicSigTransactionObject(transaction, lsig);
   }
 

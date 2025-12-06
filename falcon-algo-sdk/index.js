@@ -338,7 +338,8 @@ falcon_verify`;
    */
   createLogicSig(accountInfo, txid) {
     const programBytes = new Uint8Array(Buffer.from(accountInfo.logicSig.program, 'base64'));
-    const txnIdBytes = new Uint8Array(txid);
+    const raw = base32.parse(txid, { loose: true });
+    const txnIdBytes = new Uint8Array(raw);
     return new algosdk.LogicSigAccount(programBytes, [txnIdBytes]);
   }
 
@@ -349,8 +350,7 @@ falcon_verify`;
    * @returns {Promise<Object>} Signed transaction
    */
   async signTransaction(transaction, accountInfo, txid) {
-    const raw = base32.parse(txid);
-    const lsig = this.createLogicSig(accountInfo, raw);
+    const lsig = this.createLogicSig(accountInfo, txid);
     return algosdk.signLogicSigTransactionObject(transaction, lsig);
   }
 

@@ -3,7 +3,7 @@
  * Demonstrates creating Falcon-protected accounts, converting existing accounts, and making transactions
  */
 
-import FalconAlgoSDK, { Networks, FalconAlgoUtils } from '../index.js';
+import FalconAlgoSDK, { Networks, FalconAlgoUtils } from '../dist/index.js';
 import dotenv from 'dotenv';
 
 // Load environment variables if available

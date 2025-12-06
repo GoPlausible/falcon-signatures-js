@@ -9,7 +9,7 @@
  * This is an educational test showing the complete post-quantum migration process.
  */
 
-import FalconAlgoSDK, { Networks, FalconAlgoUtils } from '../index.js';
+import FalconAlgoSDK, { Networks, FalconAlgoUtils } from '../dist/index.js';
 import algosdk from 'algosdk';
 import fs from 'fs/promises';
 import readline from 'readline';

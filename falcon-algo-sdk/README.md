@@ -7,7 +7,7 @@
 [![Algorand](https://img.shields.io/badge/Algorand-Compatible-blue)](https://algorand.com/)
 [![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen)](https://github.com/GoPlausible/falcon-signatures-js)
 
-A JavaScript SDK for integrating Falcon post-quantum signatures with Algorand blockchain accounts. Create quantum-resistant accounts, convert existing accounts, and sign transactions using the Falcon signature scheme through Algorand's LogicSig system.
+A TypeScript SDK for integrating Falcon post-quantum signatures with Algorand blockchain accounts. Create quantum-resistant accounts, convert existing accounts, and sign transactions using the Falcon signature scheme through Algorand's LogicSig system. Builds emit ESM + type declarations to `dist/` (run `npm run build`).
 
 ## 🚀 Features
 
@@ -269,6 +269,7 @@ const result = await sdk.submitTransactionGroup(signedGroup);
 Run the unit test suite (no network required):
 
 ```bash
+npm run build
 npm test
 ```
 
@@ -462,6 +463,7 @@ npm install -g falcon-algo-sdk
 Usage:
 
 ```bash
+# Create a new Falcon-protected account (saves JSON to cwd)
 # Create a new Falcon-protected account (saves JSON to cwd)
 falcon-algo create --network testnet
 

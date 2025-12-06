@@ -15,7 +15,7 @@
 import fs from 'fs/promises';
 import readline from 'readline';
 import path from 'path';
-import FalconAlgoSDK, { Networks } from './index.js';
+import FalconAlgoSDK, { Networks } from './dist/index.js';
 
 const HELP = `
 Falcon-Algorand SDK CLI

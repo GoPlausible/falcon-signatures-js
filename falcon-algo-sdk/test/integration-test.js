@@ -262,15 +262,9 @@ async function runIntegrationTest() {
       throw new Error('Account rekey verification failed');
     }
 
-    // Step 8: Create LogicSig for transaction signing
-    log('Creating LogicSig for transaction signing...', 'step');
-    const logicSig = sdk.createLogicSig(conversionInfo);
-    
-    log(`LogicSig created with address: ${logicSig.address()}`, 'success');
-    log(`LogicSig arguments: ${logicSig.lsig.args.length} (Falcon signature included)`, 'info');
-    log(`Falcon signature size: ${logicSig.lsig.args[0].length} bytes`, 'falcon');
+ 
 
-    // Step 9: Create transaction group with dummy transactions for additional pool bytes
+    // Step 8: Create transaction group with dummy transactions for additional pool bytes
     log(`Creating post-quantum Resistant account payment transaction group...`, 'step');
     log(`Sending ${PAYMENT_AMOUNT_ALGO} Algo to: ${TARGET_ADDRESS}`, 'algo');
 
@@ -294,6 +288,14 @@ async function runIntegrationTest() {
       note: new Uint8Array(Buffer.from(paymentParams.note)),
       suggestedParams: { ...suggestedParams, fee: 4000, flatFee: true } // Cover all transaction fees
     });
+
+    // Step 9: Create LogicSig for transaction signing
+    log('Creating LogicSig for transaction signing...', 'step');
+    const logicSig = sdk.createLogicSig(conversionInfo, paymentTxn.txID().toString());
+    
+    log(`LogicSig created with address: ${logicSig.address()}`, 'success');
+    log(`LogicSig arguments: ${logicSig.lsig.args.length} (Falcon signature included)`, 'info');
+    log(`Falcon signature size: ${logicSig.lsig.args[0].length} bytes`, 'falcon');
 
     // Create dummy LogicSig for additional pool bytes (similar to falcon-txn-test pattern)
     log('Creating dummy LogicSig for transaction group optimization...', 'step');

@@ -6,6 +6,7 @@
 import algosdk from 'algosdk';
 import Falcon from 'falcon-signatures';
 import { Point } from '@noble/ed25519';
+import { base32 } from "rfc4648";
 /**
  * Network configurations
  */
@@ -285,7 +286,7 @@ falcon_verify`;
       rekeyTransaction: {
         txn: rekeyTxn,
         signedTxn: signedRekeyTxn,
-        txId: rekeyTxn.txID()
+        txId: rekeyTxn.txID().toString()
       },
 
       // Metadata
@@ -295,7 +296,7 @@ falcon_verify`;
     };
 
     console.log(`✅ Conversion prepared. Original: ${originalAddress}, New: ${escrowAddress}`);
-    console.log(`Submit the rekey transaction to complete conversion: ${rekeyTxn.txID()}`);
+    console.log(`Submit the rekey transaction to complete conversion: ${rekeyTxn.txID().toString()}`);
 
     return conversionInfo;
   }
@@ -335,9 +336,10 @@ falcon_verify`;
    * @param {Object} accountInfo - Account info from createFalconAccount or convertToFalconAccount
    * @returns {algosdk.LogicSigAccount} LogicSig account ready for transaction signing
    */
-  createLogicSig(accountInfo, txID) {
+  createLogicSig(accountInfo, txid) {
     const programBytes = new Uint8Array(Buffer.from(accountInfo.logicSig.program, 'base64'));
-    return new algosdk.LogicSigAccount(programBytes, [txID]);
+    const txnIdBytes = new Uint8Array(Buffer.from(txid));
+    return new algosdk.LogicSigAccount(programBytes, [txnIdBytes]);
   }
 
   /**
@@ -346,9 +348,9 @@ falcon_verify`;
    * @param {Object} accountInfo - Account info from createFalconAccount or convertToFalconAccount
    * @returns {Promise<Object>} Signed transaction
    */
-  async signTransaction(transaction, accountInfo) {
-    const txID = transaction.txID();
-    const lsig = this.createLogicSig(accountInfo, txID);
+  async signTransaction(transaction, accountInfo, txid) {
+    const raw = base32.parse(txid);
+    const lsig = this.createLogicSig(accountInfo, raw);
     return algosdk.signLogicSigTransactionObject(transaction, lsig);
   }
 
@@ -376,9 +378,10 @@ falcon_verify`;
       note: note ? new Uint8Array(Buffer.from(note)) : undefined,
       suggestedParams
     });
+    const txid = txn.txID().toString();
 
     // Sign with Falcon LogicSig
-    return await this.signTransaction(txn, accountInfo);
+    return await this.signTransaction(txn, accountInfo, txid);
   }
 
   /**
@@ -451,7 +454,7 @@ falcon_verify`;
     // Sign each transaction with its corresponding account
     const signedTxns = [];
     for (let i = 0; i < transactions.length; i++) {
-      const signedTxn = await this.signTransaction(transactions[i], accountInfos[i]);
+      const signedTxn = await this.signTransaction(transactions[i], accountInfos[i], transactions[i].txID().toString());
       signedTxns.push(signedTxn.blob);
     }
 

@@ -418,8 +418,7 @@ Waiting for confirmation...
 =====================
 ✅ Successfully sent 0.1 Algo using Falcon post-quantum signatures!
 📄 Transaction ID: LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
-🔍 View on AlloExplorer: https://testnet.algoexplorer.io/tx/LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
-🌐 View on Allo: https://lora.algokit.io/testnet/transaction/LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
+🌐 View on LORA: https://lora.algokit.io/testnet/transaction/LUWFMX33BCCHCOC444VDSFHSBBBUEJQUADVRN5BMUQ2MVHKCYHAA
 🔐 Signature Algorithm: Falcon-1024 (Post-Quantum Resistant)
 📊 Signature Size: 1234 bytes
 💰 Transaction Fee: 4000 microAlgos

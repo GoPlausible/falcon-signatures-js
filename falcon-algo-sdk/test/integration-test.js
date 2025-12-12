@@ -400,8 +400,7 @@ async function runIntegrationTest() {
     console.log('=====================');
     console.log(`✅ Successfully sent ${PAYMENT_AMOUNT_ALGO} Algo using Falcon post-quantum signatures!`);
     console.log(`📄 Transaction ID: ${paymentTxId}`);
-    console.log(`🔍 View on AlloExplorer: https://testnet.algoexplorer.io/tx/${paymentTxId}`);
-    console.log(`🌐 View on Allo: https://lora.algokit.io/testnet/transaction/${paymentTxId}`);
+    console.log(`🌐 View on LORA: https://lora.algokit.io/testnet/transaction/${paymentTxId}`);
     console.log(`🔐 Signature Algorithm: Falcon-1024 (Post-Quantum Resistant)`);
     console.log(`📊 Signature Size: ${logicSig.lsig.args[0].length} bytes`);
     console.log(`💰 Transaction Fee: ${paymentConfirmation.txn.txn.fee} microAlgos`);

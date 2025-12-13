@@ -161,7 +161,7 @@ export class FalconAlgoSDK {
   private _generateTealProgram(falconPublicKey: Uint8Array, counter: number): string {
     return `#pragma version 12
 bytecblock 0x${counter.toString(16).padStart(2, '0')}
-gtxn 0 TxID
+txn TxID
 arg 0
 pushbytes 0x${Buffer.from(falconPublicKey).toString('hex')}
 falcon_verify`;

@@ -25,3 +25,4 @@ external/libsodium/dist
 external/libsodium/dist/*
 **falcon-protected**
 **standard-account**
+.npmrc

@@ -176,7 +176,6 @@ async function runTests() {
   // Test 8: TEAL program generation
   await test('TEAL program generation', async () => {
     const sdk = new FalconAlgoSDK(Networks.TESTNET);
-    const account = await sdk.createFalconAccount();
     
     // Test internal TEAL generation methods
     const falconPk = new Uint8Array(32).fill(1); // Dummy public key

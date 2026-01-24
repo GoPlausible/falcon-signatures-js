@@ -1,8 +1,9 @@
 # Falcon Deterministic Signatures in JavaScript (WASM)
 
 ## A WASM/JS port of the Falcon deterministic post-quantum signature algorithm using Emscripten & WebAssembly. 
-Try it live here: [Falcon Signatures](https://falcon-signatures-js.pages.dev/)
-SDK here: [Falcon SDK](falcon-algo-sdk/README.md)
+
+- [Falcon keys TS implementation NPM Package](https://www.npmjs.com/package/falcon-signatures)
+- [Falcon keys TS implementation Live Playground](https://daoauth.org)
 
 <img width="500" height="1024" alt="ChatGPT Image Sep 26, 2025, 08_53_23 PM" src="https://github.com/user-attachments/assets/b6b50e1d-9df2-4f04-b3a4-6d578d9fdd77" />
 

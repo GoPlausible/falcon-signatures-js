@@ -62,6 +62,17 @@ type SignedLogicSigTx = {
     txID: string;
     blob: Uint8Array;
 };
+export declare function isOnCurve(bytes: Uint8Array): boolean;
+export declare function isLsigAddressOffCurve(accountInfo: {
+    logicSig: {
+        address: string;
+    };
+}): boolean;
+export declare function assertLsigAddressOffCurve(accountInfo: {
+    logicSig: {
+        address: string;
+    };
+}): void;
 /**
  * Main SDK class for Falcon-powered Algorand accounts
  */
@@ -118,7 +129,13 @@ export declare class FalconAlgoSDK {
         status: 'confirmed' | 'submitted';
     }>;
     /**
-     * Create a LogicSig account from Falcon account info and txId
+     * Create a LogicSig account from Falcon account info and txId.
+     *
+     * Refuses to operate if the stored LSig address decodes to a valid Ed25519
+     * point. Such accounts were produced by SDK versions <= 1.0.5 where the
+     * rejection loop's on-curve check was broken; signing for them would
+     * silently waive the post-quantum guarantee. Migrate by creating a fresh
+     * Falcon account and moving funds.
      */
     createLogicSig(accountInfo: FalconAccountInfo | ConversionInfo, txid: string): Promise<LogicSigAccount>;
     /**

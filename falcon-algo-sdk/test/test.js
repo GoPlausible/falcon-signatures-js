@@ -3,8 +3,15 @@
  * Basic tests to verify core functionality
  */
 
-import FalconAlgoSDK, { Networks, FalconAlgoUtils } from '../dist/index.js';
+import FalconAlgoSDK, {
+  Networks,
+  FalconAlgoUtils,
+  isOnCurve,
+  isLsigAddressOffCurve,
+  assertLsigAddressOffCurve,
+} from '../dist/index.js';
 import algosdk from 'algosdk';
+import { getPublicKeyAsync, utils as edUtils } from '@noble/ed25519';
 
 let testResults = [];
 
@@ -66,6 +73,191 @@ async function runTests() {
     const lease = FalconAlgoUtils.generateRandomLease();
     if (lease.length !== 32) {
       throw new Error(`Random lease should be 32 bytes, got ${lease.length}`);
+    }
+  });
+
+  // Test 3b: isOnCurve oracle hardening. This must NOT be constant-false
+  // (the original bug) or constant-true (a future regression in the other
+  // direction). Both would silently destroy the rejection loop.
+  await test('isOnCurve oracle: deterministic vectors plus statistical balance', async () => {
+    // Deterministic on-curve: any genuine ed25519 public key.
+    const realPk = await getPublicKeyAsync(edUtils.randomSecretKey());
+    if (!isOnCurve(realPk)) {
+      throw new Error('isOnCurve returned false for a valid ed25519 public key');
+    }
+
+    // Deterministic off-curve: y = 2^256-1 exceeds the field prime so
+    // RFC8032 decoding rejects it before curve math.
+    const allOnes = new Uint8Array(32).fill(0xff);
+    if (isOnCurve(allOnes)) {
+      throw new Error('isOnCurve returned true for an out-of-field value');
+    }
+
+    // Statistical on-curve check: 16 fresh pubkeys must all return true.
+    // Catches a constant-false stub even if deterministic samples pass.
+    let onCurveHits = 0;
+    for (let i = 0; i < 16; i++) {
+      const pk = await getPublicKeyAsync(edUtils.randomSecretKey());
+      if (isOnCurve(pk)) onCurveHits++;
+    }
+    if (onCurveHits !== 16) {
+      throw new Error(`Expected 16/16 random pubkeys on-curve, got ${onCurveHits}/16`);
+    }
+
+    // Statistical balance check: across 64 random 32-byte buffers, the
+    // result must vary (roughly ~50% on-curve under non-zip215 decoding).
+    // A constant-true or constant-false stub fails here.
+    let trues = 0;
+    for (let i = 0; i < 64; i++) {
+      const buf = edUtils.randomSecretKey(); // 32 random bytes
+      if (isOnCurve(buf)) trues++;
+    }
+    if (trues === 0 || trues === 64) {
+      throw new Error(`isOnCurve is constant (${trues}/64 true) — oracle is broken`);
+    }
+    if (trues < 8 || trues > 56) {
+      throw new Error(`isOnCurve distribution looks wrong: ${trues}/64 true (expected ~32)`);
+    }
+  });
+
+  // Test 3c: rejection loop in createFalconAccount must skip on-curve
+  // candidates and settle on the first off-curve one. Uses a stubbed
+  // algod.compile so we can control which counter yields which address.
+  await test('rejection loop skips on-curve candidates (mocked algod)', async () => {
+    const sdk = new FalconAlgoSDK(Networks.TESTNET);
+
+    const onCurveAddr1 = algosdk.encodeAddress(
+      await getPublicKeyAsync(edUtils.randomSecretKey()),
+    );
+    const onCurveAddr2 = algosdk.encodeAddress(
+      await getPublicKeyAsync(edUtils.randomSecretKey()),
+    );
+    const offCurveAddr = algosdk.encodeAddress(new Uint8Array(32).fill(0xff));
+
+    const sequence = [onCurveAddr1, onCurveAddr2, offCurveAddr];
+    let callCount = 0;
+    sdk.algod = {
+      compile: () => ({
+        do: async () => {
+          if (callCount >= sequence.length) {
+            throw new Error(`compile called ${callCount + 1} times; expected at most ${sequence.length}`);
+          }
+          const hash = sequence[callCount++];
+          return { result: 'AA==', hash };
+        },
+      }),
+    };
+
+    const account = await sdk.createFalconAccount({ generateEdKeys: false });
+
+    if (account.logicSig.counter !== 2) {
+      throw new Error(`Loop must settle at counter 2 (first off-curve), got ${account.logicSig.counter}`);
+    }
+    if (callCount !== 3) {
+      throw new Error(`Loop must make exactly 3 compile calls, made ${callCount}`);
+    }
+    if (account.address !== offCurveAddr) {
+      throw new Error(`Selected address must be the off-curve one, got ${account.address}`);
+    }
+  });
+
+  // Test 3d: rejection loop must throw if all 256 candidates are on-curve.
+  // Probability in production is ~2^-256, but the bail-out path must work.
+  await test('rejection loop throws after 256 on-curve candidates', async () => {
+    const sdk = new FalconAlgoSDK(Networks.TESTNET);
+
+    // Pre-generate 256 on-curve addresses up-front to keep the test fast.
+    const onCurveAddrs = [];
+    for (let i = 0; i < 256; i++) {
+      onCurveAddrs.push(
+        algosdk.encodeAddress(await getPublicKeyAsync(edUtils.randomSecretKey())),
+      );
+    }
+
+    let callCount = 0;
+    sdk.algod = {
+      compile: () => ({
+        do: async () => {
+          const hash = onCurveAddrs[callCount++];
+          return { result: 'AA==', hash };
+        },
+      }),
+    };
+
+    let threw = false;
+    let message = '';
+    try {
+      await sdk.createFalconAccount({ generateEdKeys: false });
+    } catch (e) {
+      threw = true;
+      message = e.message;
+    }
+
+    if (!threw) {
+      throw new Error('Loop must throw when every candidate is on-curve');
+    }
+    if (!/off-curve/i.test(message)) {
+      throw new Error(`Throw message must mention off-curve, got: ${message}`);
+    }
+    if (callCount !== 256) {
+      throw new Error(`Loop must try all 256 counters, tried ${callCount}`);
+    }
+  });
+
+  // Test 3e: runtime guard must refuse to sign with a legacy on-curve
+  // account (produced by SDK <= 1.0.5) and must accept any account created
+  // by the current code path.
+  await test('createLogicSig refuses legacy on-curve accounts and accepts current ones', async () => {
+    const sdk = new FalconAlgoSDK(Networks.TESTNET);
+
+    // 1. A real, current-SDK account must pass the guard.
+    const freshAccount = await sdk.createFalconAccount({ generateEdKeys: false });
+    if (!isLsigAddressOffCurve(freshAccount)) {
+      throw new Error('Fresh account from current SDK reports as on-curve — fix regressed');
+    }
+    assertLsigAddressOffCurve(freshAccount); // must not throw
+
+    // 2. A synthetic accountInfo with an on-curve address must be rejected
+    //    by both the utility and by createLogicSig before any signing.
+    const onCurveAddr = algosdk.encodeAddress(
+      await getPublicKeyAsync(edUtils.randomSecretKey()),
+    );
+    const vulnerable = {
+      ...freshAccount,
+      address: onCurveAddr,
+      logicSig: { ...freshAccount.logicSig, address: onCurveAddr },
+    };
+
+    if (isLsigAddressOffCurve(vulnerable)) {
+      throw new Error('Guard helper failed to detect on-curve LSig address');
+    }
+
+    let threw = false;
+    let message = '';
+    try {
+      assertLsigAddressOffCurve(vulnerable);
+    } catch (e) {
+      threw = true;
+      message = e.message;
+    }
+    if (!threw) throw new Error('assertLsigAddressOffCurve must throw on on-curve address');
+    if (!/post-quantum/i.test(message) || !/recreate/i.test(message)) {
+      throw new Error(`Guard error must mention PQ status and remediation, got: ${message}`);
+    }
+
+    // 3. createLogicSig must refuse before producing any Falcon signature.
+    const txid = '347BME23NZR3CGQA3EDRZTWJZWJ43QYDOVV43SVWTCI6EMJHVVVQ';
+    let signThrew = false;
+    try {
+      await sdk.createLogicSig(vulnerable, txid);
+    } catch (e) {
+      signThrew = true;
+      if (!/post-quantum/i.test(e.message)) {
+        throw new Error(`createLogicSig threw with the wrong message: ${e.message}`);
+      }
+    }
+    if (!signThrew) {
+      throw new Error('createLogicSig must refuse to sign for an on-curve LSig address');
     }
   });
 

@@ -100,12 +100,32 @@ type SignedLogicSigTx = {
   blob: Uint8Array;
 };
 
-function isOnCurve(bytes: Uint8Array): boolean {
+// Do not switch to Point.fromHex: @noble/ed25519 v3 throws on non-string input
+// before running curve math, which silently makes every call return false.
+export function isOnCurve(bytes: Uint8Array): boolean {
   try {
-    Point.fromHex(bytes as any);
-    return true; // On curve (bad for LogicSig address)
+    Point.fromBytes(bytes);
+    return true;
   } catch {
-    return false; // Off curve (good)
+    return false;
+  }
+}
+
+export function isLsigAddressOffCurve(
+  accountInfo: { logicSig: { address: string } },
+): boolean {
+  const pubkey = algosdk.decodeAddress(accountInfo.logicSig.address).publicKey;
+  return !isOnCurve(pubkey);
+}
+
+export function assertLsigAddressOffCurve(
+  accountInfo: { logicSig: { address: string } },
+): void {
+  if (!isLsigAddressOffCurve(accountInfo)) {
+    throw new Error(
+      `LSig address ${accountInfo.logicSig.address} decodes to a valid Ed25519 point; ` +
+        'post-quantum protection is void. Recreate the account.',
+    );
   }
 }
 
@@ -405,9 +425,17 @@ falcon_verify`;
   }
 
   /**
-   * Create a LogicSig account from Falcon account info and txId
+   * Create a LogicSig account from Falcon account info and txId.
+   *
+   * Refuses to operate if the stored LSig address decodes to a valid Ed25519
+   * point. Such accounts were produced by SDK versions <= 1.0.5 where the
+   * rejection loop's on-curve check was broken; signing for them would
+   * silently waive the post-quantum guarantee. Migrate by creating a fresh
+   * Falcon account and moving funds.
    */
   async createLogicSig(accountInfo: FalconAccountInfo | ConversionInfo, txid: string): Promise<LogicSigAccount> {
+    assertLsigAddressOffCurve(accountInfo);
+
     const programBytes = new Uint8Array(Buffer.from(accountInfo.logicSig.program, 'base64'));
     const raw = base32.parse(txid, { loose: true });
     const txnIdBytes = new Uint8Array(raw);

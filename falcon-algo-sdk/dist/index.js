@@ -26,11 +26,16 @@ export const Networks = {
         name: 'betanet',
     },
 };
-// Do not switch to Point.fromHex: @noble/ed25519 v3 throws on non-string input
-// before running curve math, which silently makes every call return false.
+// Use ZIP-215 (broad) decode: an LSig address is unsafe if ANY Ed25519
+// verifier in the wild would accept it as a valid pubkey, including ones
+// that admit non-canonical encodings or y >= p (mod p). Strict / RFC 8032
+// decode (the default) would under-reject and leave addresses that
+// permissive verifiers still treat as on-curve.
+// Do not switch to Point.fromHex: it requires a hex string and throws
+// before any curve math on Uint8Array input.
 export function isOnCurve(bytes) {
     try {
-        Point.fromBytes(bytes);
+        Point.fromBytes(bytes, true);
         return true;
     }
     catch {

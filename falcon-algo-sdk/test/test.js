@@ -13,6 +13,16 @@ import FalconAlgoSDK, {
 import algosdk from 'algosdk';
 import { getPublicKeyAsync, utils as edUtils } from '@noble/ed25519';
 
+// Random 32-byte sample that is rejected by the (ZIP-215 / broad) decoder.
+// Converges in ~2 tries since roughly half of random buffers are off-curve.
+async function findOffCurveBytes() {
+  for (let i = 0; i < 64; i++) {
+    const b = edUtils.randomSecretKey();
+    if (!isOnCurve(b)) return b;
+  }
+  throw new Error('Could not find off-curve random sample in 64 tries — oracle suspect');
+}
+
 let testResults = [];
 
 function test(description, testFunction) {
@@ -86,11 +96,12 @@ async function runTests() {
       throw new Error('isOnCurve returned false for a valid ed25519 public key');
     }
 
-    // Deterministic off-curve: y = 2^256-1 exceeds the field prime so
-    // RFC8032 decoding rejects it before curve math.
-    const allOnes = new Uint8Array(32).fill(0xff);
-    if (isOnCurve(allOnes)) {
-      throw new Error('isOnCurve returned true for an out-of-field value');
+    // Deterministic off-curve: searched at runtime under the same decoder
+    // semantics the SDK uses (ZIP-215). Hardcoded vectors would have to
+    // assume a specific decode mode and silently break if the mode changed.
+    const offCurve = await findOffCurveBytes();
+    if (isOnCurve(offCurve)) {
+      throw new Error('isOnCurve returned true for a known-off-curve sample');
     }
 
     // Statistical on-curve check: 16 fresh pubkeys must all return true.
@@ -132,7 +143,7 @@ async function runTests() {
     const onCurveAddr2 = algosdk.encodeAddress(
       await getPublicKeyAsync(edUtils.randomSecretKey()),
     );
-    const offCurveAddr = algosdk.encodeAddress(new Uint8Array(32).fill(0xff));
+    const offCurveAddr = algosdk.encodeAddress(await findOffCurveBytes());
 
     const sequence = [onCurveAddr1, onCurveAddr2, offCurveAddr];
     let callCount = 0;

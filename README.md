@@ -1,4 +1,8 @@
 # Falcon Deterministic Signatures in JavaScript (WASM)
+## THIS REPOSITORY IS ARCHIVED AND RETIRED IN FAVOR OF https://github.com/joe-p/falcon-1024-ts
+## USE THIS NEW PACKAGE https://www.npmjs.com/package/falcon-1024
+
+
 
 ## A WASM/JS port of the Falcon deterministic post-quantum signature algorithm using Emscripten & WebAssembly. 
 
